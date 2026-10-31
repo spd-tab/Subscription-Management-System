@@ -66,6 +66,8 @@ Shared mock data lives in `src/data/mockData.js`; reusable interface primitives 
 
 ## Collaboration
 
+See [TEAM_DEVELOPMENT.md](./TEAM_DEVELOPMENT.md) for the step-by-step Windows/PowerShell GitHub workflow, branch assignments, Pull Request process, and conflict-resolution instructions.
+
 1. Pull the latest `main` before creating a short-lived feature branch.
 2. Keep changes scoped to your feature folder; coordinate shared component changes.
 3. Use descriptive commits and open a pull request for review.
