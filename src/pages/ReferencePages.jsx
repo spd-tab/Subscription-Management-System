@@ -1,5 +1,5 @@
 
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -23,6 +23,7 @@ import {
 } from '../data/mockData'
 
 import { useDashboardData } from '../hooks/useDashboardData'
+import { fetchCustomers, createCustomer, updateCustomer } from '../services/customersService'
 
 import {
   Button,
@@ -364,177 +365,330 @@ export function DashboardPage() {
 // ==========================================
 
 export function CustomersPage() {
-  const [customerList, setCustomerList] = useState(customers)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('All')
+  const [customerList, setCustomerList] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const navigate = useNavigate()
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    billing_address: '',
+  })
 
-  const filtered = customers.filter(
-    (customer) =>
-      (
-        filter === 'All' ||
-        (
-          filter === 'At Risk'
-            ? customer.status !== 'Healthy'
-            : filter === 'High MRR'
-              ? customer.mrr >= 2000
-              : customer.segment === filter
+  // Fetch customers from Supabase
+  async function loadCustomers() {
+    try {
+      setError('')
+      setLoading(true)
+
+      const data = await fetchCustomers()
+      setCustomerList(data)
+    } catch (err) {
+      setError(err.message || 'Unable to load customers.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCustomers()
+  }, [])
+
+  // Open add customer form
+  function openAddForm() {
+    setEditingCustomer(null)
+
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      billing_address: '',
+    })
+
+    setError('')
+    setShowForm(true)
+  }
+
+  // Open edit customer form
+  function openEditForm(customer) {
+    setEditingCustomer(customer)
+
+    setFormData({
+      name: customer.name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      billing_address: customer.billing_address || '',
+    })
+
+    setError('')
+    setShowForm(true)
+  }
+
+  // Handle input changes
+  function handleInputChange(event) {
+    const { name, value } = event.target
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }))
+  }
+
+  // Add or update customer
+  async function handleSubmit(event) {
+    event.preventDefault()
+
+    try {
+      setSaving(true)
+      setError('')
+
+      if (editingCustomer) {
+        const updated = await updateCustomer(
+          editingCustomer.id,
+          formData
         )
-      ) &&
-      `${customer.name} ${customer.email} ${customer.contact}`
-        .toLowerCase()
-        .includes(search.toLowerCase())
+
+        setCustomerList((previous) =>
+          previous.map((customer) =>
+            customer.id === updated.id ? updated : customer
+          )
+        )
+      } else {
+        const created = await createCustomer(formData)
+
+        setCustomerList((previous) => [
+          created,
+          ...previous,
+        ])
+      }
+
+      setShowForm(false)
+      setEditingCustomer(null)
+    } catch (err) {
+      setError(err.message || 'Unable to save customer.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Search customers
+  const filtered = customerList.filter((customer) =>
+    `${customer.name || ''} ${customer.email || ''} ${customer.phone || ''}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
   )
 
   return (
     <>
       <PageHeading
         title="Customers"
-        description="Manage accounts and billing profiles"
+        description="Manage customer accounts and billing profiles"
       >
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={openAddForm}>
           <Plus size={19} /> Add Customer
         </Button>
       </PageHeading>
 
+      {/* Customer metrics */}
       <div className="customer-metrics">
         <MetricCard
-          label="Total accounts"
-          value={customers.length.toString()}
-          delta="Available demo customers"
+          label="Total Customers"
+          value={customerList.length.toString()}
+          delta="Database records"
         />
 
         <MetricCard
-          label="Avg MRR"
-          value={`$${Math.round(
-            customers.reduce((sum, customer) => sum + customer.mrr, 0) /
-              customers.length
-          ).toLocaleString()}`}
-          delta="Per customer"
+          label="With Phone"
+          value={customerList
+            .filter((customer) => customer.phone)
+            .length.toString()}
+          delta="Contact details"
         />
 
         <MetricCard
-          label="Healthy accounts"
-          value={customers.filter((customer) => customer.status === 'Healthy').length.toString()}
-          delta="Available demo data"
+          label="With Billing Address"
+          value={customerList
+            .filter((customer) => customer.billing_address)
+            .length.toString()}
+          delta="Billing profiles"
         />
       </div>
 
+      {/* Search */}
       <SearchBar
         value={search}
         onChange={setSearch}
-        placeholder="Lookup by name, email, or domain..."
+        placeholder="Search by name, email, or phone..."
       />
 
-      <div className="filter-tabs">
-        {['All', 'Enterprise', 'SMB', 'At Risk', 'High MRR'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={filter === tab ? 'selected' : ''}
-          >
-            {tab}
-            {tab === 'All' ? ` (${customers.length})` : ''}
-          </button>
-        ))}
-      </div>
-
-      <div className="table-caption">
-        <span>Showing {filtered.length} accounts</span>
-        <span>↕ Sorted by MRR</span>
-      </div>
-
-      <div className="customer-cards">
-        {filtered.map((customer, index) => (
-          <article
-            className="customer-card"
-            key={customer.id}
-            onClick={() => navigate(`/admin/customers/${customer.id}`)}
-          >
-            <div className="customer-top">
-              <span className={`company-avatar company-${index}`}>
-                {customer.name
-                  .split(' ')
-                  .map((word) => word[0])
-                  .slice(0, 2)
-                  .join('')}
-              </span>
-
-              <div className="customer-identity">
-                <strong>{customer.name}</strong>
-                <span>
-                  {customer.contact} • {customer.email}
-                </span>
-              </div>
-
-              <StatusBadge>{customer.status}</StatusBadge>
-            </div>
-
-            <div className="customer-stats">
-              <div>
-                <small>Subscriptions</small>
-                <span>
-                  {customer.subscriptions} Active
-                  <em> (${customer.mrr.toLocaleString()}/mo)</em>
-                </span>
-              </div>
-
-              <div>
-                <small>Invoices</small>
-                <span>{customer.invoices}</span>
-              </div>
-            </div>
-
-            <div className="customer-meta">
-              <span>
-                <Phone size={15} /> {customer.phone}
-              </span>
-
-              <span>
-                <Globe2 size={15} /> {customer.region}
-              </span>
-
-              <small>Added {customer.added}</small>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
+      {/* Loading and error messages */}
+      {error && !showForm && (
         <div className="empty-state">
-          No accounts match your search.
+          {error}
+          <button onClick={loadCustomers}>Retry</button>
         </div>
       )}
 
+      {loading ? (
+        <div className="state-message">
+          Loading customers...
+        </div>
+      ) : (
+        <>
+          <div className="table-caption">
+            <span>Showing {filtered.length} customers</span>
+            <span>Sorted by recently added</span>
+          </div>
+
+          {/* Customer cards */}
+          <div className="customer-cards">
+            {filtered.map((customer, index) => (
+              <article
+                className="customer-card"
+                key={customer.id}
+              >
+                <div className="customer-top">
+                  <span
+                    className={`company-avatar company-${index % 6}`}
+                  >
+                    {(customer.name || 'C')
+                      .split(' ')
+                      .map((word) => word[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase()}
+                  </span>
+
+                  <div className="customer-identity">
+                    <strong>{customer.name}</strong>
+                    <span>{customer.email}</span>
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    onClick={() => openEditForm(customer)}
+                  >
+                    Edit
+                  </Button>
+                </div>
+
+                <div className="customer-stats">
+                  <div>
+                    <small>Phone</small>
+                    <span>
+                      {customer.phone || 'Not provided'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <small>Billing Address</small>
+                    <span>
+                      {customer.billing_address || 'Not provided'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="customer-meta">
+                  <small>
+                    Added{' '}
+                    {customer.created_at
+                      ? new Date(
+                          customer.created_at
+                        ).toLocaleDateString()
+                      : 'Date unavailable'}
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="empty-state">
+              {search
+                ? 'No customers match your search.'
+                : 'No customers found. Add your first customer.'}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Add / Edit customer modal */}
       {showForm && (
         <Modal
-          title="Add customer"
-          onClose={() => setShowForm(false)}
+          title={
+            editingCustomer
+              ? 'Edit Customer'
+              : 'Add Customer'
+          }
+          onClose={() => {
+            if (!saving) setShowForm(false)
+          }}
         >
           <form
             className="modal-form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              setShowForm(false)
-            }}
+            onSubmit={handleSubmit}
           >
             <label>
-              Company name
-              <input required placeholder="Company, Inc." />
+              Customer Name
+              <input
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                placeholder="Company or customer name"
+              />
             </label>
 
             <label>
-              Contact email
+              Email
               <input
-                required
+                name="email"
                 type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
                 placeholder="name@company.com"
               />
             </label>
 
-            <Button type="submit">Add customer</Button>
+            <label>
+              Phone
+              <input
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Phone number"
+              />
+            </label>
+
+            <label>
+              Billing Address
+              <textarea
+                name="billing_address"
+                value={formData.billing_address}
+                onChange={handleInputChange}
+                placeholder="Enter billing address"
+                rows={3}
+              />
+            </label>
+
+            {error && (
+              <p className="danger-text">{error}</p>
+            )}
+
+            <Button type="submit" disabled={saving}>
+              {saving
+                ? 'Saving...'
+                : editingCustomer
+                  ? 'Save Changes'
+                  : 'Add Customer'}
+            </Button>
           </form>
         </Modal>
       )}
@@ -542,9 +696,7 @@ export function CustomersPage() {
   )
 }
 
-// ==========================================
-// SUBSCRIPTIONS PAGE
-// ==========================================
+// ==================== SUBSCRIPTIONS PAGE ====================
 
 export function SubscriptionsPage() {
   const [search, setSearch] = useState('')

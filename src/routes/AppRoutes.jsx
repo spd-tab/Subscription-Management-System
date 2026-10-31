@@ -12,9 +12,11 @@ import { ForgotPasswordPage, LoginPage, RegisterPage } from '../pages/AuthPages'
 import PaymentsPage from '../pages/PaymentsPage'
 import { PortalDashboardPage, PortalSubscriptionsPage, PortalInvoicesPage, PortalPaymentsPage } from '../pages/PortalPages'
 import { useAuth } from '../context/AuthContext'
+import ProductsPage from '../pages/ProductsPage'
+import ProductDetailPage from '../pages/ProductDetailPage'
 
 const adminPlaceholderRoutes = Object.entries(routeMeta).filter(
-  ([path]) => path.startsWith('/admin/') && !['/admin/customers/:id', '/admin/products/:id', '/admin/subscriptions', '/admin/subscriptions/:id', '/admin/invoices', '/admin/invoices/:id', '/admin/payments', '/admin/discounts'].includes(path)
+  ([path]) => path.startsWith('/admin/') && !['/admin/customers/:id', '/admin/products', '/admin/products/:id', '/admin/subscriptions', '/admin/subscriptions/:id', '/admin/invoices', '/admin/invoices/:id', '/admin/payments', '/admin/discounts'].includes(path)
 )
 const portalPlaceholderRoutes = Object.entries(routeMeta).filter(
   ([path]) => path.startsWith('/portal/') && !['/portal/dashboard', '/portal/subscriptions', '/portal/invoices', '/portal/payments'].includes(path)
@@ -49,6 +51,8 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="customers" element={<CustomersPage />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:id" element={<ProductDetailPage />} />
         <Route path="subscriptions" element={<SubscriptionsPage />} />
         <Route path="subscriptions/:id" element={<SubscriptionDetailsPage />} />
         <Route path="invoices" element={<InvoicesPage />} />
@@ -59,7 +63,6 @@ export default function AppRoutes() {
           <Route key={path} path={path.slice('/admin/'.length)} element={<ModulePage meta={meta} />} />
         ))}
         <Route path="customers/:id" element={<ModulePage meta={routeMeta['/admin/customers/:id']} />} />
-        <Route path="products/:id" element={<ModulePage meta={routeMeta['/admin/products/:id']} />} />
       </Route>
 
       {/* Customer portal routes — accessible by customers */}
