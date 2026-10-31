@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Bell, Menu, LayoutDashboard, RefreshCw, ReceiptText, UsersRound, MoreHorizontal, Package, BadgePercent, ChartNoAxesCombined, Settings, LogOut } from 'lucide-react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Bell, Menu, LayoutDashboard, RefreshCw, ReceiptText, UsersRound, MoreHorizontal, Package, BadgePercent, ChartNoAxesCombined, Settings, LogOut, Shield } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const primaryLinks = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -43,8 +44,23 @@ function Shell({ customer }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const { profile, signOut, isAdmin, isStaff } = useAuth()
   const links = customer ? portalLinks : primaryLinks
   const currentLabel = [...primaryLinks, ...extraLinks, ...portalLinks].find((item) => item.to === location.pathname)?.label ?? 'Brightloop'
+
+  const userName = profile?.full_name || (customer ? 'Customer' : 'Administrator')
+  const userInitials = userName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  const userRole = profile?.role
+    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+    : customer ? 'Customer' : 'Administrator'
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
+
+  const roleBadge = profile?.role === 'admin' ? 'role-admin' : profile?.role === 'staff' ? 'role-staff' : 'role-customer'
 
   return <div className="app-shell">
     {drawerOpen && <button className="drawer-backdrop" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} />}
@@ -54,10 +70,30 @@ function Shell({ customer }) {
       <nav className="side-nav">{(customer ? portalLinks : primaryLinks).map((link) => <LinkItem key={link.to} link={link} onClick={() => setDrawerOpen(false)} />)}
         {!customer && <><div className="workspace-label section-label">MANAGE</div>{extraLinks.map((link) => <LinkItem key={link.to} link={link} onClick={() => setDrawerOpen(false)} />)}</>}
       </nav>
-      <div className="sidebar-profile"><div className="avatar">ER</div><div><strong>{customer ? 'Alex Morgan' : 'Elena Rodriguez'}</strong><small>{customer ? 'Customer' : 'Administrator'}</small></div><LogOut size={17} /></div>
+      <div className="sidebar-profile">
+        <div className={`avatar ${roleBadge}`}>{userInitials}</div>
+        <div>
+          <strong>{userName}</strong>
+          <small className="role-label">
+            <Shield size={12} /> {userRole}
+          </small>
+        </div>
+        <button className="icon-button" onClick={handleSignOut} aria-label="Sign out" title="Sign out">
+          <LogOut size={17} />
+        </button>
+      </div>
     </aside>
     <div className="main-column">
-      <header className="topbar"><button className="icon-button menu-button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}><Menu size={21} /></button><span className="topbar-title">{currentLabel}</span><div className="topbar-spacer" /><button className="icon-button notification-button" aria-label="Notifications"><Bell size={20} /><i /></button><button className="profile-button"><span className="avatar">ER</span><span>Elena Rodriguez</span></button></header>
+      <header className="topbar">
+        <button className="icon-button menu-button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}><Menu size={21} /></button>
+        <span className="topbar-title">{currentLabel}</span>
+        <div className="topbar-spacer" />
+        <button className="icon-button notification-button" aria-label="Notifications"><Bell size={20} /><i /></button>
+        <button className="profile-button">
+          <span className={`avatar ${roleBadge}`}>{userInitials}</span>
+          <span>{userName}</span>
+        </button>
+      </header>
       <main className="page-content"><Outlet /></main>
       <footer className="footer-note">◈ Brightloop Core Ledger <span>•</span> Synced 2m ago</footer>
     </div>
