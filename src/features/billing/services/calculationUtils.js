@@ -46,7 +46,9 @@ function formatDateOnly(date) {
 export function calculateSubscriptionSubtotal(unitPrice, quantity = 1) {
   const price = assertFiniteNonNegative(unitPrice, 'Unit price')
   const units = assertFiniteNonNegative(quantity, 'Quantity')
-  if (!Number.isInteger(units)) throw new RangeError('Quantity must be a whole number.')
+  if (units === 0 || Math.abs(units * 100 - Math.round(units * 100)) > Number.EPSILON * 100) {
+    throw new RangeError('Quantity must be greater than zero and have no more than two decimal places.')
+  }
   return roundCurrency(price * units)
 }
 
@@ -100,6 +102,47 @@ export function calculateInvoiceTotal({ subtotal, discountAmount = 0, taxRatePer
   }
 }
 
+export function calculateInvoiceItemTotals(items, discountAmount = 0, defaultTaxRatePercent = 0) {
+  if (!Array.isArray(items) || items.length === 0) throw new TypeError('At least one invoice item is required.')
+  const normalizedItems = items.map((item) => {
+    const quantity = Number(item.quantity)
+    if (!Number.isFinite(quantity) || quantity <= 0 || Math.abs(quantity * 100 - Math.round(quantity * 100)) > Number.EPSILON * 100) {
+      throw new RangeError('Invoice item quantity must be positive and have no more than two decimal places.')
+    }
+    const unitPrice = assertFiniteNonNegative(item.unitPrice, 'Unit price')
+    return { ...item, quantity, unitPrice, subtotal: calculateSubscriptionSubtotal(unitPrice, quantity) }
+  })
+  const subtotal = roundCurrency(normalizedItems.reduce((total, item) => total + item.subtotal, 0))
+  const discount = assertFiniteNonNegative(discountAmount, 'Discount amount')
+  if (discount > subtotal) throw new RangeError('Discount cannot exceed the subtotal.')
+  let remainingDiscount = roundCurrency(discount)
+  const lines = normalizedItems.map((item, index) => {
+    const lineDiscount = index === normalizedItems.length - 1
+      ? remainingDiscount
+      : subtotal === 0 ? 0 : Math.min(item.subtotal, roundCurrency(discount * item.subtotal / subtotal))
+    remainingDiscount = roundCurrency(remainingDiscount - lineDiscount)
+    const taxableAmount = calculateTaxableAmount(item.subtotal, lineDiscount)
+    const taxRatePercent = item.taxRatePercent ?? defaultTaxRatePercent
+    const taxAmount = calculateTax(taxableAmount, taxRatePercent)
+    return {
+      ...item,
+      discountAmount: lineDiscount,
+      taxableAmount,
+      taxRatePercent: Number(taxRatePercent),
+      taxAmount,
+      totalAmount: roundCurrency(taxableAmount + taxAmount),
+    }
+  })
+  const totals = lines.reduce((result, line) => ({
+    subtotal: roundCurrency(result.subtotal + line.subtotal),
+    discountAmount: roundCurrency(result.discountAmount + line.discountAmount),
+    taxableAmount: roundCurrency(result.taxableAmount + line.taxableAmount),
+    taxAmount: roundCurrency(result.taxAmount + line.taxAmount),
+    total: roundCurrency(result.total + line.totalAmount),
+  }), { subtotal: 0, discountAmount: 0, taxableAmount: 0, taxAmount: 0, total: 0 })
+  return { items: lines, ...totals }
+}
+
 export function calculateNextBillingDate(dateValue, frequency, interval = 1, anchorDateValue = dateValue) {
   const { year, month, day, date } = parseDateOnly(dateValue)
   const { day: anchorDay } = parseDateOnly(anchorDateValue)
@@ -111,6 +154,26 @@ export function calculateNextBillingDate(dateValue, frequency, interval = 1, anc
   if (frequency === 'weekly') date.setUTCDate(date.getUTCDate() + count * 7)
   if (frequency === 'monthly' || frequency === 'yearly') {
     const targetMonthIndex = month - 1 + (frequency === 'monthly' ? count : count * 12)
+    const targetYear = year + Math.floor(targetMonthIndex / 12)
+    const normalizedMonth = ((targetMonthIndex % 12) + 12) % 12
+    const lastDayOfMonth = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate()
+    date.setUTCFullYear(targetYear, normalizedMonth, Math.min(anchorDay, lastDayOfMonth))
+  }
+
+  return formatDateOnly(date)
+}
+
+export function calculatePreviousBillingDate(dateValue, frequency, interval = 1, anchorDateValue = dateValue) {
+  const { year, month, date } = parseDateOnly(dateValue)
+  const { day: anchorDay } = parseDateOnly(anchorDateValue)
+  if (!FREQUENCIES.has(frequency)) throw new TypeError(`Billing frequency must be one of: ${[...FREQUENCIES].join(', ')}.`)
+  const count = Number(interval)
+  if (!Number.isInteger(count) || count < 1) throw new RangeError('Billing interval must be a positive whole number.')
+
+  if (frequency === 'daily') date.setUTCDate(date.getUTCDate() - count)
+  if (frequency === 'weekly') date.setUTCDate(date.getUTCDate() - count * 7)
+  if (frequency === 'monthly' || frequency === 'yearly') {
+    const targetMonthIndex = month - 1 - (frequency === 'monthly' ? count : count * 12)
     const targetYear = year + Math.floor(targetMonthIndex / 12)
     const normalizedMonth = ((targetMonthIndex % 12) + 12) % 12
     const lastDayOfMonth = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate()

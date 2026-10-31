@@ -1,8 +1,10 @@
 import { isSupabaseConfigured } from '../../../services/supabase/client.js'
 import { developmentCustomers, developmentPlans, developmentSubscriptions } from '../data/developmentData.js'
+import { createSupabaseSubscriptionAdapter } from './supabaseSubscriptionAdapter.js'
 
 let demoSubscriptions = structuredClone(developmentSubscriptions)
 let configuredAdapter = null
+let supabaseAdapter = null
 
 export class ServiceConfigurationError extends Error {
   constructor(message) {
@@ -20,8 +22,9 @@ export function configureSubscriptionAdapter(adapter) {
 
 function getAdapter() {
   if (configuredAdapter) return configuredAdapter
-  if (isSupabaseConfigured) {
-    throw new ServiceConfigurationError('Supabase is configured, but a subscription adapter must be supplied for the agreed database schema.')
+  if (isSupabaseConfigured) return supabaseAdapter ??= createSupabaseSubscriptionAdapter()
+  if (!import.meta.env.DEV) {
+    throw new ServiceConfigurationError('Supabase is not configured. Subscription demo data is available only in development mode.')
   }
 
   return {
@@ -77,7 +80,7 @@ export const subscriptionService = {
 }
 
 export function isUsingDevelopmentSubscriptions() {
-  return configuredAdapter === null && !isSupabaseConfigured
+  return configuredAdapter === null && import.meta.env.DEV && !isSupabaseConfigured
 }
 
 export function resetDevelopmentSubscriptions() {

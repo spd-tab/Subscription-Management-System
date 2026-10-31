@@ -14,6 +14,9 @@ export default function InvoiceDetailsPage() {
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setError('')
+    setInvoice(null)
     invoiceService.getById(decodeURIComponent(id)).then((record) => {
       if (active) setInvoice(record)
     }).catch((loadError) => {
@@ -30,7 +33,7 @@ export default function InvoiceDetailsPage() {
 
   return <section className="feature-page">
     <div className="breadcrumbs"><Link to="/admin/invoices">Invoices</Link><span>/</span>{invoice.invoiceNumber}</div>
-    <div className="page-heading"><div><h1>{invoice.invoiceNumber}</h1><p>{invoice.customerName}</p></div><span className={`status-badge ${invoice.status === 'Overdue' ? 'danger' : ['Draft', 'Pending'].includes(invoice.status) ? 'warning' : 'success'}`}>{invoice.status}</span></div>
+    <div className="page-heading"><div><h1>{invoice.invoiceNumber}</h1><p>{invoice.customerName}</p></div><span className={`status-badge ${['Overdue', 'Cancelled'].includes(invoice.status) ? 'danger' : ['Draft', 'Pending', 'Confirmed'].includes(invoice.status) ? 'warning' : 'success'}`}>{invoice.status}</span></div>
     {isUsingDevelopmentInvoices() && <p className="feature-demo-notice">Development demo data — this record is not persisted to Supabase.</p>}
     <div className="panel feature-page">
       <div className="feature-detail-grid">

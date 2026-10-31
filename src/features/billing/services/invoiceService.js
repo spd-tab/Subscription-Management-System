@@ -1,9 +1,11 @@
 import { isSupabaseConfigured } from '../../../services/supabase/client.js'
 import { getLocalDateOnly } from './calculationUtils.js'
 import { developmentInvoices } from '../data/developmentInvoices.js'
+import { createSupabaseInvoiceAdapter } from './supabaseInvoiceAdapter.js'
 
 let demoInvoices = structuredClone(developmentInvoices)
 let configuredAdapter = null
+let supabaseAdapter = null
 
 export function configureInvoiceAdapter(adapter) {
   if (!adapter || typeof adapter.list !== 'function' || typeof adapter.getById !== 'function' || typeof adapter.createDraft !== 'function') {
@@ -14,8 +16,9 @@ export function configureInvoiceAdapter(adapter) {
 
 function getAdapter() {
   if (configuredAdapter) return configuredAdapter
-  if (isSupabaseConfigured) {
-    throw new Error('Supabase is configured, but an invoice adapter must be supplied for the agreed database schema.')
+  if (isSupabaseConfigured) return supabaseAdapter ??= createSupabaseInvoiceAdapter()
+  if (!import.meta.env.DEV) {
+    throw new Error('Supabase is not configured. Invoice demo data is available only in development mode.')
   }
   return {
     async list({ search = '', status = 'all' } = {}) {
@@ -46,6 +49,11 @@ function getAdapter() {
 export const invoiceService = {
   list: (options) => getAdapter().list(options),
   getById: (id) => getAdapter().getById(id),
+  listTaxRates: () => {
+    const adapter = getAdapter()
+    if (typeof adapter.listTaxRates !== 'function') return Promise.resolve([])
+    return adapter.listTaxRates()
+  },
   createDraft: (input) => getAdapter().createDraft(input),
   requestGeneration(payload) {
     const adapter = getAdapter()
@@ -57,7 +65,7 @@ export const invoiceService = {
 }
 
 export function isUsingDevelopmentInvoices() {
-  return configuredAdapter === null && !isSupabaseConfigured
+  return configuredAdapter === null && import.meta.env.DEV && !isSupabaseConfigured
 }
 
 export function resetDevelopmentInvoices() {

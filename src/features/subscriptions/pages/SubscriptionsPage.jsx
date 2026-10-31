@@ -14,6 +14,7 @@ export default function SubscriptionsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [optionsLoading, setOptionsLoading] = useState(true)
   const [error, setError] = useState('')
   const [optionsError, setOptionsError] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -37,6 +38,7 @@ export default function SubscriptionsPage() {
 
   useEffect(() => {
     let active = true
+    setOptionsLoading(true)
     Promise.all([subscriptionService.listCustomers(), subscriptionService.listPlans()])
       .then(([customerRecords, planRecords]) => {
         if (active) {
@@ -47,12 +49,16 @@ export default function SubscriptionsPage() {
       .catch((loadError) => {
         if (active) setOptionsError(loadError instanceof Error ? loadError.message : 'Unable to load subscription form options.')
       })
+      .finally(() => {
+        if (active) setOptionsLoading(false)
+      })
     return () => { active = false }
   }, [])
 
   const activeCount = useMemo(() => subscriptions.filter((subscription) => subscription.status === 'Active').length, [subscriptions])
   const totalMrr = useMemo(() => subscriptions.filter((subscription) => subscription.status === 'Active').reduce((total, subscription) => {
-    const divisor = subscription.billingFrequency === 'yearly' ? 12 : subscription.billingFrequency === 'weekly' ? 52 / 12 : subscription.billingFrequency === 'daily' ? 365 / 12 : 1
+    const interval = Number(subscription.billingInterval) || 1
+    const divisor = subscription.billingFrequency === 'yearly' ? 12 * interval : subscription.billingFrequency === 'weekly' ? 52 * interval / 12 : subscription.billingFrequency === 'daily' ? 365 * interval / 12 : interval
     return total + subscription.unitPrice * subscription.quantity / divisor
   }, 0), [subscriptions])
 
@@ -68,11 +74,11 @@ export default function SubscriptionsPage() {
   }
 
   return <section className="subscription-page feature-page">
-    <div className="page-heading"><div><h1>Subscriptions</h1><p>Manage contracts, billing schedules, and subscription lifecycle</p></div><Button onClick={() => setFormOpen(true)}><Plus size={18} /> New subscription</Button></div>
+    <div className="page-heading"><div><h1>Subscriptions</h1><p>Manage contracts, billing schedules, and subscription lifecycle</p></div><Button disabled={optionsLoading || Boolean(optionsError) || customers.length === 0 || plans.length === 0} onClick={() => setFormOpen(true)}><Plus size={18} /> New subscription</Button></div>
     {isDemo && <p className="feature-demo-notice">Temporary development demo data — changes are held in local memory and are not saved to Supabase.</p>}
     {optionsError && <ErrorState message={optionsError} />}
     <div className="subscription-metrics">
-      <MetricCard label="Total MRR (filtered)" value={`$${totalMrr.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} delta={`${activeCount} active in result`} />
+      <MetricCard label="Total MRR (filtered)" value={`${isDemo ? '$' : 'INR '}${totalMrr.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} delta={`${activeCount} active in result`} />
       <MetricCard label="Subscriptions" value={`${subscriptions.length}`} delta="Matching current filters" />
       <MetricCard label="Billing status" value="Active only" delta="Only active subscriptions are billable" />
     </div>
@@ -89,6 +95,6 @@ export default function SubscriptionsPage() {
       </div>
       <div className="feature-card-actions"><Link className="button button-secondary" to={`/admin/subscriptions/${encodeURIComponent(subscription.id)}`}>Details <ArrowRight size={15} /></Link></div>
     </article>)}</div>}
-    {formOpen && <Modal title="Create subscription" onClose={() => setFormOpen(false)}><SubscriptionForm customers={customers} plans={plans} onSubmit={createSubscription} onCancel={() => setFormOpen(false)} submitting={submitting} /></Modal>}
+    {formOpen && <Modal title="Create subscription" onClose={() => setFormOpen(false)}><SubscriptionForm customers={customers} plans={plans} onSubmit={createSubscription} onCancel={() => setFormOpen(false)} submitting={submitting} isDemo={isDemo} /></Modal>}
   </section>
 }

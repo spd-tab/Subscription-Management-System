@@ -1,5 +1,5 @@
 import { canGenerateInvoice } from '../../subscriptions/services/subscriptionLifecycle.js'
-import { calculateDiscountAmount, calculateInvoiceLinesSubtotal, calculateInvoiceTotal, calculateNextBillingDate, isValidDateOnly } from './calculationUtils.js'
+import { calculateDiscountAmount, calculateInvoiceItemTotals, calculateInvoiceLinesSubtotal, calculateNextBillingDate, isValidDateOnly } from './calculationUtils.js'
 
 export function findSubscriptionsDueForBilling(subscriptions, asOfDate) {
   if (!Array.isArray(subscriptions)) throw new TypeError('Subscriptions must be an array.')
@@ -62,6 +62,9 @@ export function prepareInvoiceLineItems(subscription, period = determineBillingP
     description: item.description,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
+    productId: item.productId ?? item.product_id ?? null,
+    variantId: item.variantId ?? item.variant_id ?? null,
+    taxRatePercent: Number(item.taxRatePercent ?? item.tax_rate_percent ?? 0),
     amount: calculateInvoiceLinesSubtotal([item]),
     periodStart: period.startDate,
     periodEndExclusive: period.endDateExclusive,
@@ -73,7 +76,10 @@ export function calculatePreparedInvoice(subscription, { discountAmount, discoun
   const items = prepareInvoiceLineItems(subscription, period)
   const subtotal = calculateInvoiceLinesSubtotal(items)
   const appliedDiscount = discount ? calculateDiscountAmount(subtotal, discount) : discountAmount ?? 0
-  return { period, items, ...calculateInvoiceTotal({ subtotal, discountAmount: appliedDiscount, taxRatePercent }) }
+  return {
+    period,
+    ...calculateInvoiceItemTotals(items, appliedDiscount, taxRatePercent),
+  }
 }
 
 export function prepareDueInvoiceRequests(subscriptions, asOfDate, { resolveBillingRules } = {}) {
@@ -95,5 +101,16 @@ export async function requestInvoiceGeneration(subscriptions, asOfDate, options 
   if (requests.length === 0) return { requested: 0, results: [] }
   const invoiceService = service ?? (await import('./invoiceService.js')).invoiceService
   if (typeof invoiceService.requestGeneration !== 'function') throw new TypeError('Invoice service must implement requestGeneration.')
-  return invoiceService.requestGeneration({ requests, asOfDate })
+  return invoiceService.requestGeneration({ asOfDate })
+}
+
+export async function requestDueInvoiceGeneration(asOfDate, options = {}) {
+  const [{ subscriptionService }, { invoiceService }] = await Promise.all([
+    import('../../subscriptions/services/subscriptionService.js'),
+    import('./invoiceService.js'),
+  ])
+  const subscriptions = await subscriptionService.list({ status: 'Active' })
+  const preview = prepareDueInvoiceRequests(subscriptions, asOfDate, options)
+  const result = await invoiceService.requestGeneration({ asOfDate })
+  return { previewCount: preview.length, result }
 }

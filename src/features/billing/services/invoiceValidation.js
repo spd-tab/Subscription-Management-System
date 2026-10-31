@@ -5,8 +5,9 @@ export function validateInvoiceDraft({ customerId, items, discountType, discount
   if (dueAt && !isValidDateOnly(dueAt)) return 'Enter a valid invoice due date.'
   if (!Array.isArray(items) || items.length === 0 || items.some((item) =>
     !item.description?.trim() ||
-    !Number.isInteger(Number(item.quantity)) ||
-    Number(item.quantity) < 1 ||
+    !Number.isFinite(Number(item.quantity)) ||
+    Number(item.quantity) <= 0 ||
+    Math.abs(Number(item.quantity) * 100 - Math.round(Number(item.quantity) * 100)) > Number.EPSILON * 100 ||
     !Number.isFinite(Number(item.unitPrice)) ||
     Number(item.unitPrice) < 0,
   )) return 'Add at least one valid line item.'

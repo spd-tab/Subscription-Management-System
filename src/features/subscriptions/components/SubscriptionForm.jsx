@@ -3,7 +3,7 @@ import { Button, DatePicker, FormInput, SelectInput } from '../../../components/
 import { calculateNextBillingDate, calculateSubscriptionSubtotal, getLocalDateOnly } from '../../billing/services/calculationUtils'
 import { validateSubscriptionDraft } from '../services/subscriptionValidation'
 
-export default function SubscriptionForm({ customers, plans, onSubmit, onCancel, submitting = false }) {
+export default function SubscriptionForm({ customers, plans, onSubmit, onCancel, submitting = false, isDemo = false }) {
   const [values, setValues] = useState({
     customerId: '',
     planId: '',
@@ -91,6 +91,6 @@ export default function SubscriptionForm({ customers, plans, onSubmit, onCancel,
     {preview && <div className="feature-summary"><span>Subtotal for this period <strong>{selectedPlan.currency} {preview.subtotal.toFixed(2)}</strong></span><span>Next billing date <strong>{preview.nextBillingDate}</strong></span></div>}
     {formError && <p className="feature-form-error" role="alert">{formError}</p>}
     <div className="feature-form-actions"><Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button><Button type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create draft'}</Button></div>
-    <small>Development mode: this draft is kept in local memory only and is not saved to Supabase.</small>
+    {isDemo && <small>Temporary development mode: this draft is kept in local memory only and is not saved to Supabase.</small>}
   </form>
 }

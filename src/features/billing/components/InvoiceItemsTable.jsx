@@ -26,7 +26,7 @@ export default function InvoiceItemsTable({ items, onChange, readOnly = false, c
     <table className="invoice-items-table"><thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>Amount</th>{!readOnly && <th />}</tr></thead><tbody>
       {items.map((item, index) => <tr key={`${index}-${item.description}`}>
         <td>{readOnly ? item.description : <input aria-label={`Line ${index + 1} description`} required value={item.description} onChange={(event) => updateItem(index, 'description', event.target.value)} />}</td>
-        <td>{readOnly ? item.quantity : <input aria-label={`Line ${index + 1} quantity`} type="number" required min="1" step="1" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} />}</td>
+        <td>{readOnly ? item.quantity : <input aria-label={`Line ${index + 1} quantity`} type="number" required min="0.01" step="0.01" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} />}</td>
         <td>{readOnly ? `${currency} ${Number(item.unitPrice).toFixed(2)}` : <input aria-label={`Line ${index + 1} unit price`} type="number" required min="0" step="0.01" value={item.unitPrice} onChange={(event) => updateItem(index, 'unitPrice', event.target.value)} />}</td>
         <td>{getAmount(item)}</td>
         {!readOnly && <td><button className="invoice-remove-item" type="button" onClick={() => removeItem(index)} aria-label={`Remove line ${index + 1}`}>×</button></td>}

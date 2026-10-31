@@ -19,6 +19,9 @@ export default function SubscriptionDetailsPage() {
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setError('')
+    setSubscription(null)
     subscriptionService.getById(decodeURIComponent(id)).then((record) => {
       if (active) setSubscription(record)
     }).catch((loadError) => {
