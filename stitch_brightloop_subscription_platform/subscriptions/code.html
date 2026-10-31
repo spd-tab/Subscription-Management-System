@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#f5fbf2;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "tertiary": "#000000", "surface-dim": "#d6dcd3", "tertiary-fixed": "#e1e3e0", "surface-container-low": "#eff5ec", "on-tertiary-container": "#828482", "on-surface": "#171d18", "surface-container-high": "#e4eae1", "primary-fixed": "#d7e7d1", "error": "#ba1a1a", "on-secondary-fixed-variant": "#3f4a3e", "error-container": "#ffdad6", "secondary-fixed-dim": "#becabb", "on-primary-fixed": "#121f11", "primary": "#000000", "secondary": "#566155", "surface-tint": "#536251", "inverse-on-surface": "#edf2e9", "primary-fixed-dim": "#bbcbb6", "on-secondary": "#ffffff", "primary-container": "#121f11", "tertiary-fixed-dim": "#c5c7c4", "outline-variant": "#c4c8c0", "on-tertiary-fixed": "#191c1b", "surface-bright": "#f5fbf2", "on-primary-container": "#798875", "on-primary-fixed-variant": "#3c4a3b", "secondary-container": "#d7e3d3", "on-error-container": "#93000a", "on-surface-variant": "#444842", "background": "#f5fbf2", "on-background": "#171d18", "inverse-primary": "#bbcbb6", "surface-variant": "#dee4db", "surface-container-highest": "#dee4db", "on-error": "#ffffff", "tertiary-container": "#191c1b", "on-tertiary": "#ffffff", "on-tertiary-fixed-variant": "#444746", "on-secondary-container": "#5a6659", "on-primary": "#ffffff", "secondary-fixed": "#dae6d6", "surface-container-lowest": "#ffffff", "on-secondary-fixed": "#141e14", "outline": "#747871", "surface": "#f5fbf2", "surface-container": "#eaf0e6", "inverse-surface": "#2c322c" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "gutter": "1rem", "margin": "1rem", "gutter-desktop": "1.5rem", "margin-tablet": "1.5rem", "space-md": "0.75rem", "margin-desktop": "2.5rem", "space-sm": "0.5rem", "space-xl": "2rem", "space-lg": "1.25rem" }, fontFamily: { "label-md": ["Inter"], "headline-sm": ["Inter"], "headline-md": ["Inter"], "body-sm": ["Inter"], "body-md": ["Inter"], "numeric-table": ["Inter"], "headline-xl": ["Inter"], "headline-xl-mobile": ["Inter"], "body-lg": ["Inter"], "label-sm": ["Inter"], "headline-lg-mobile": ["Inter"], "numeric-metric": ["Inter"], "headline-lg": ["Inter"] }, fontSize: { "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.005em", "fontWeight": "500" }], "headline-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "numeric-table": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "500" }], "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "600" }], "headline-xl-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "numeric-metric": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.03em", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen selection:bg-secondary-container selection:text-on-secondary-container"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm"><button aria-label="Open main navigation" class="w-11 h-11 -ml-space-xs flex items-center justify-center rounded-lg text-on-surface hover:bg-surface-container active:scale-95 transition-all" onclick="document.getElementById('mobile-drawer').classList.remove('-translate-x-full');document.getElementById('drawer-backdrop').classList.remove('opacity-0','pointer-events-none');" type="button"><span class="material-symbols-outlined text-[22px]">menu</span></button><div class="flex items-center gap-space-xs"><img alt="Brightloop Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XjBo9c9JdQYjHOd77O5oAd_jecjhUB09Bpz67zQYG1MkqlKo-1_P485NZg9GpPAr87AmPjHlpURxAivKIDC1iu3baxbzTZMcZ_dNB8h8GoIvGgxU8B4kgld5kRSlBggtn_08K60nnV1pzgariF_eqT1L021AxzDehY7568vZt18FIIl0eCp0gwL7qphUjaQnNi5EDNb7NDAgg2iLKK2k1ljARnaYPZuBUTQA_gXrVNbw"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight hidden xs:inline">Brightloop</span></div><div class="h-4 w-[1px] bg-outline-variant/40 mx-0.5"></div><span class="font-headline-sm text-headline-sm text-on-surface truncate max-w-[110px] sm:max-w-none">Subscriptions</span><span class="hidden min-[420px]:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-label-sm font-semibold tracking-wide uppercase bg-secondary-container text-on-secondary-container">LIVE</span></div><div class="flex items-center gap-space-xs"><button aria-label="Notifications" class="relative w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container active:scale-95 transition-all" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button><div class="flex items-center justify-center p-0.5 rounded-full hover:bg-surface-container transition-all cursor-pointer"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLnCxBbh3CPA0keYulJ64B2oWZlh41DrqPmtbTCYsto0BDVNGUd260sBnl0XF5O5sM9zdXQ1ArUgBdVcJ6kPLpn24CSgX_CE9RH3JeW0XucdB0kl8bjvYfhZT3rKz3L709ZNRQgh5AbCJuiRVOLSnp8J4EoMthbImDp8Ay4V1Magl8A6HQPoxbRXm12pdDzATQ62H9XLDkH1f67I1moc_AxUOcUcFeYP33cin2j9PQ"/></div></div></div></header><div class="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="drawer-backdrop" onclick="document.getElementById('mobile-drawer').classList.add('-translate-x-full');this.classList.add('opacity-0','pointer-events-none');"></div><aside class="fixed top-0 bottom-0 left-0 z-50 w-[84%] max-w-xs bg-surface-container-lowest -translate-x-full transition-transform duration-300 ease-out flex flex-col shadow-[0_4px_24px_rgba(0,0,0,0.12)] pt-safe pb-safe" id="mobile-drawer"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><img alt="Brightloop Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XjBo9c9JdQYjHOd77O5oAd_jecjhUB09Bpz67zQYG1MkqlKo-1_P485NZg9GpPAr87AmPjHlpURxAivKIDC1iu3baxbzTZMcZ_dNB8h8GoIvGgxU8B4kgld5kRSlBggtn_08K60nnV1pzgariF_eqT1L021AxzDehY7568vZt18FIIl0eCp0gwL7qphUjaQnNi5EDNb7NDAgg2iLKK2k1ljARnaYPZuBUTQA_gXrVNbw"/><span class="font-headline-sm text-headline-sm text-on-surface">Brightloop</span></div><button class="w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all" onclick="document.getElementById('mobile-drawer').classList.add('-translate-x-full');document.getElementById('drawer-backdrop').classList.add('opacity-0','pointer-events-none');" type="button"><span class="material-symbols-outlined text-[20px]">close</span></button></div><div class="flex-1 overflow-y-auto px-margin py-space-sm space-y-space-md"><div class="space-y-1"><p class="px-space-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Overview</p><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">dashboard</span><span class="font-body-md text-body-md">Dashboard</span></a></div><div class="space-y-1"><p class="px-space-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Business</p><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="customers" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">group</span><span class="font-body-md text-body-md">Customers</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="products" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">inventory_2</span><span class="font-body-md text-body-md">Products</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="subscription-plans" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">loyalty</span><span class="font-body-md text-body-md">Subscription Plans</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="quotations" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">request_quote</span><span class="font-body-md text-body-md">Quotations</span></a></div><div class="space-y-1"><p class="px-space-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Billing</p><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="subscriptions" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">autorenew</span><span class="font-body-md text-body-md">Subscriptions</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="invoices" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">receipt_long</span><span class="font-body-md text-body-md">Invoices</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="payments" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">payments</span><span class="font-body-md text-body-md">Payments</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="discounts" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">percent</span><span class="font-body-md text-body-md">Discounts</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="tax-configuration" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">account_balance</span><span class="font-body-md text-body-md">Tax Configuration</span></a></div><div class="space-y-1"><p class="px-space-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Insights</p><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="reports-and-analytics" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">monitoring</span><span class="font-body-md text-body-md">Reports &amp; Analytics</span></a></div><div class="space-y-1"><p class="px-space-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Administration</p><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="team-members" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">badge</span><span class="font-body-md text-body-md">Team Members</span></a><a class="flex items-center gap-space-md px-space-sm h-11 rounded-lg text-on-surface hover:bg-surface-container transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px] text-secondary">settings</span><span class="font-body-md text-body-md">Settings</span></a></div></div><div class="p-margin bg-surface-container-low"><div class="flex items-center gap-space-sm"><img alt="Profile" class="w-9 h-9 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLnCxBbh3CPA0keYulJ64B2oWZlh41DrqPmtbTCYsto0BDVNGUd260sBnl0XF5O5sM9zdXQ1ArUgBdVcJ6kPLpn24CSgX_CE9RH3JeW0XucdB0kl8bjvYfhZT3rKz3L709ZNRQgh5AbCJuiRVOLSnp8J4EoMthbImDp8Ay4V1Magl8A6HQPoxbRXm12pdDzATQ62H9XLDkH1f67I1moc_AxUOcUcFeYP33cin2j9PQ"/><div class="min-w-0 flex-1"><p class="font-headline-sm text-headline-sm text-on-surface truncate leading-tight">Executive User</p><p class="font-body-sm text-body-sm text-on-surface-variant truncate">Admin Workspace</p></div></div></div></aside><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-[calc(100vh-4rem)]"><div class="flex flex-col w-full px-margin pb-space-xl space-y-space-md">
+<!-- Header Section -->
+<div class="flex items-center justify-between pt-space-sm">
+<div class="min-w-0">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight font-semibold">Subscriptions</h1>
+<p class="font-body-sm text-body-sm text-secondary">1,842 active contracts across global entities</p>
+</div>
+<button class="shrink-0 flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>New</span>
+</button>
+</div>
+<!-- Segmented Metrics KPI Strip -->
+<div class="grid grid-cols-3 gap-space-xs p-1.5 rounded-xl bg-surface-container shadow-sm">
+<div class="flex flex-col p-2.5 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Total MRR</span>
+<span class="material-symbols-outlined text-[14px] text-surface-tint">trending_up</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold">$148,250</span>
+<span class="font-label-sm text-label-sm text-surface-tint mt-0.5">+4.2% MoM</span>
+</div>
+<div class="flex flex-col p-2.5 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Avg Contract</span>
+<span class="material-symbols-outlined text-[14px] text-secondary">analytics</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold">$80.48<span class="text-body-sm font-normal text-secondary">/mo</span></span>
+<span class="font-label-sm text-label-sm text-secondary mt-0.5">Weighted</span>
+</div>
+<div class="flex flex-col p-2.5 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Net Churn</span>
+<span class="material-symbols-outlined text-[14px] text-surface-tint">check_circle</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold">0.8%</span>
+<span class="font-label-sm text-label-sm text-surface-tint mt-0.5">-0.3% target</span>
+</div>
+</div>
+<!-- Search Input -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-secondary">search</span>
+<input class="w-full h-10 pl-10 pr-9 rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-secondary font-body-sm text-body-sm shadow-sm focus:outline-none focus:bg-surface-bright transition-all" id="sub-search" placeholder="Search subscriptions, customers, plans..." type="text"/>
+<button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-on-surface p-1" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+<!-- Filter Chips (Horizontal Scrollable) -->
+<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar -mx-margin px-margin py-0.5">
+<button class="sub-filter shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition-all bg-primary text-on-primary shadow-sm" data-filter="all" type="button">
+      All
+    </button>
+<button class="sub-filter shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest" data-filter="active" type="button">
+      Active <span class="text-body-sm opacity-80">(1,510)</span>
+</button>
+<button class="sub-filter shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest" data-filter="quotation" type="button">
+      Quotation <span class="text-body-sm opacity-80">(85)</span>
+</button>
+<button class="sub-filter shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest" data-filter="paused" type="button">
+      Paused <span class="text-body-sm opacity-80">(64)</span>
+</button>
+<button class="sub-filter shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest" data-filter="draft" type="button">
+      Draft <span class="text-body-sm opacity-80">(42)</span>
+</button>
+<button class="sub-filter shrink-0 px-3 py-1 rounded-full font-label-md text-label-md transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest" data-filter="closed" type="button">
+      Closed <span class="text-body-sm opacity-80">(141)</span>
+</button>
+</div>
+<!-- Subscription List Cards -->
+<div class="flex flex-col space-y-space-md" id="cards-container">
+<!-- Card 1: Starlight AI Technologies -->
+<div class="subscription-item flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm space-y-space-sm" data-status="active">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Corporate minimalist logo monogram for Starlight AI high technology firm with deep coniferous forest tones and geometric grid on soft sage gradient background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxW2h05Beb-z6mNVi3eJQExWchU0OdVdorjxjvkHp3m-O8HXeE6hFPSM3e_3W3Is_1PoayBqZU2EHWoaFXenchNJy0hEKT7P18hEdKOF_QjgV1LrWzdYtDAexavNvaH_LsSYqdOnqi_Soehn-OflhHY3KB8rRWsxEU0PjJ--utJxksZpgies2AjY60griq8t-XUjljgqbAKVTmyt1QzrKO-ox_pzZBJq8xhGdvRK20"/>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Starlight AI Technologies</h2>
+<span class="material-symbols-outlined text-[16px] text-surface-tint">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary truncate">Enterprise Dedicated - Annual</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm uppercase bg-secondary-container text-on-secondary-container tracking-wider">
+          Active
+        </span>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low flex items-baseline justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">$24,000</span>
+<span class="font-body-sm text-body-sm text-secondary"> / yr</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">$2,000 / mo equiv</span>
+</div>
+<div class="flex items-center gap-1.5 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-surface-tint">autorenew</span>
+<span class="truncate">Renews Oct 14, 2025 • Auto-renew ON</span>
+</div>
+<!-- Card Quick Actions -->
+<div class="flex items-center justify-between pt-1 gap-2">
+<button class="flex-1 py-1.5 px-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md text-center transition-all" type="button">
+          Pause
+        </button>
+<button class="flex-1 py-1.5 px-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md text-center transition-all" type="button">
+          Upgrade
+        </button>
+<button class="flex items-center justify-center p-1.5 rounded-lg bg-surface-container text-secondary hover:text-on-surface transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Card 2: HyperScale Data Co. -->
+<div class="subscription-item flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm space-y-space-sm" data-status="active">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Monochrome technology emblem of data cubes and network nodes for HyperScale Data Co against muted coniferous moss green canvas" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXU-F7LPFLZlNavWFwSABIemIZFf8n2gQo4mp3OOH2G9IowTG6cgRxVL7Ri_LQLU_eTpvpbM7HH3zRSb8LDXUMPcdbcNxRjQeOfn6kebcz4rcxeKgayYKfER895xPV6ABg1MS_zSEPdjXFeaPuMk-EQRvikfxzjR_Q8juxB3zl1O8i_EyiaLLGJD_mxFzYgRZlGKCz7FtD0Bbk35Z3RxqjCbC7H_Z9AVBZOOfVc9ah"/>
+</div>
+<div class="min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">HyperScale Data Co.</h2>
+<p class="font-body-sm text-body-sm text-secondary truncate">Scale Tier - Monthly (10 seats)</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm uppercase bg-secondary-container text-on-secondary-container tracking-wider">
+          Active
+        </span>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low flex items-baseline justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">$850</span>
+<span class="font-body-sm text-body-sm text-secondary"> / mo</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">10 seats included</span>
+</div>
+<div class="flex items-center gap-1.5 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-surface-tint">calendar_today</span>
+<span class="truncate">Billing cycle: 1st of every month</span>
+</div>
+<div class="flex items-center justify-between pt-1 gap-2">
+<button class="flex-1 py-1.5 px-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md text-center transition-all" type="button">
+          Manage Seats
+        </button>
+<button class="flex items-center justify-center p-1.5 rounded-lg bg-surface-container text-secondary hover:text-on-surface transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Vanguard Dynamics -->
+<div class="subscription-item flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm space-y-space-sm" data-status="quotation">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Minimalist architectural icon for Vanguard Dynamics enterprise platform rendered with crisp precision on deep forest neutral surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPlkf1PW7PmLQSJCLsj7GvkTmaJoXCcY3SI-magRO3-aTg4k4qsbr0H2pkdoGjKB-2HE2ZfVS17VwC7sYhh6kIH8TVOIoEMEAabac7nNqiRxZJf0hQf-HBMeHeViCO5-Qga8lE4RNd2YTu9wjoO9XNnQJN9_tYFDiEJB6Jt8pMOte39fHyiYDmP0-8WsyZcpQlgDOMYLJoVUv8eE-vE3saLIv6E7j2EOB3_qPtZWHc"/>
+</div>
+<div class="min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Vanguard Dynamics</h2>
+<p class="font-body-sm text-body-sm text-secondary truncate">Growth Tier - Quarterly</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm uppercase bg-surface-container-highest text-on-surface-variant tracking-wider font-semibold">
+          Quotation
+        </span>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low flex items-baseline justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">$1,290</span>
+<span class="font-body-sm text-body-sm text-secondary"> / qtr</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">$430 / mo equiv</span>
+</div>
+<div class="flex items-center gap-1.5 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary">schedule</span>
+<span class="truncate">Expires in 4 days • Needs signature</span>
+</div>
+<div class="flex items-center justify-between pt-1 gap-2">
+<button class="flex-1 py-1.5 px-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md text-center transition-all" type="button">
+          Send Reminder
+        </button>
+<button class="flex items-center justify-center p-1.5 rounded-lg bg-surface-container text-secondary hover:text-on-surface transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Card 4: Nexus Robotics GmbH -->
+<div class="subscription-item flex flex-col p-space-md rounded-xl bg-surface-container-lowest shadow-sm space-y-space-sm opacity-90" data-status="paused">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Technical industrial robotics logo badge in monochromatic charcoal and sage green tones for Nexus Robotics GmbH" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm1gexwdweSH5GEBj9aBgnz3uul94iqRv9nTp-cTrOmuyFrYgX4shlxDF7_nY1KLBAWV-ia7BQm_VZiH0oGmq6pb4Pa4-jv4eH4UpzebveCNRz0P_--IyqATucOc8kG6N-uxEkaUJQ6UWflQ9FvETe-EUI0pFKIP4i1B83-2VppAA-oC_QO1hYAY696ntlQQJyrsf6krmuzIvVKPicivV6KbiqRFK5HqUDKofUYlHg"/>
+</div>
+<div class="min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Nexus Robotics GmbH</h2>
+<p class="font-body-sm text-body-sm text-secondary truncate">Standard Cloud - Monthly</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded font-label-sm text-label-sm uppercase bg-surface-container-high text-secondary tracking-wider">
+          Paused
+        </span>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low flex items-baseline justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">$320</span>
+<span class="font-body-sm text-body-sm text-secondary"> / mo</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Dormant cycle</span>
+</div>
+<div class="flex items-center gap-1.5 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary">pause_circle</span>
+<span class="truncate">Paused on Apr 28 by Admin</span>
+</div>
+<div class="flex items-center justify-between pt-1 gap-2">
+<button class="flex-1 py-1.5 px-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md text-center transition-all" type="button">
+          Resume Service
+        </button>
+<button class="flex items-center justify-center p-1.5 rounded-lg bg-surface-container text-secondary hover:text-on-surface transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Pagination Controls & Status -->
+<div class="flex items-center justify-between pt-space-sm px-1">
+<span class="font-body-sm text-body-sm text-secondary">
+      Showing <span class="font-medium text-on-surface">1–10</span> of <span class="font-medium text-on-surface">1,842</span>
+</span>
+<div class="flex items-center gap-1.5">
+<button aria-label="Previous Page" class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-secondary hover:text-on-surface disabled:opacity-40 transition-all shadow-sm" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+</button>
+<button aria-label="Next Page" class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-secondary hover:text-on-surface transition-all shadow-sm active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Simple filter switching logic
+  const filterButtons = document.querySelectorAll('.sub-filter');
+  const cards = document.querySelectorAll('.subscription-item');
+
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach(b => {
+        b.classList.remove('bg-primary', 'text-on-primary');
+        b.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+      });
+      btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+      btn.classList.add('bg-primary', 'text-on-primary');
+
+      const filterVal = btn.getAttribute('data-filter');
+      cards.forEach(card => {
+        if (filterVal === 'all' || card.getAttribute('data-status') === filterVal) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Client-side quick search
+  const searchInput = document.getElementById('sub-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(q)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.03)]" data-active-classes="text-primary font-semibold"><div class="grid grid-cols-5 h-16 px-1 items-center"><a class="flex flex-col items-center justify-center h-full text-secondary hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-label-sm mt-0.5">Dashboard</span></a><a aria-current="page" class="flex flex-col items-center justify-center h-full transition-colors text-primary font-semibold" data-path="subscriptions" href="#"><span class="material-symbols-outlined text-[22px]">autorenew</span><span class="font-label-sm text-label-sm mt-0.5">Subs</span></a><a class="flex flex-col items-center justify-center h-full text-secondary hover:text-on-surface transition-colors" data-path="invoices" href="#"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span class="font-label-sm text-label-sm mt-0.5">Invoices</span></a><a class="flex flex-col items-center justify-center h-full text-secondary hover:text-on-surface transition-colors" data-path="customers" href="#"><span class="material-symbols-outlined text-[22px]">group</span><span class="font-label-sm text-label-sm mt-0.5">Customers</span></a><button class="flex flex-col items-center justify-center h-full text-secondary hover:text-on-surface transition-colors" onclick="document.getElementById('mobile-drawer').classList.remove('-translate-x-full');document.getElementById('drawer-backdrop').classList.remove('opacity-0','pointer-events-none');" type="button"><span class="material-symbols-outlined text-[22px]">more_horiz</span><span class="font-label-sm text-label-sm mt-0.5">More</span></button></div></nav></body></html>
