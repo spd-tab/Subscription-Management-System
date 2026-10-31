@@ -5,7 +5,10 @@ import ModulePage, { routeMeta } from '../pages/ModulePage'
 import { DashboardPage, CustomersPage, SubscriptionsPage, InvoicesPage } from '../pages/ReferencePages'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from '../pages/AuthPages'
 
-const adminPlaceholderRoutes = Object.entries(routeMeta).filter(([path]) => path.startsWith('/admin/') && !['/admin/customers/:id', '/admin/products/:id', '/admin/subscriptions/:id', '/admin/invoices/:id'].includes(path))
+import ProductsPage from '../pages/ProductsPage'
+import ProductDetailPage from '../pages/ProductDetailPage'
+
+const adminPlaceholderRoutes = Object.entries(routeMeta).filter(([path]) => path.startsWith('/admin/') && !['/admin/customers/:id', '/admin/products', '/admin/products/:id', '/admin/subscriptions/:id', '/admin/invoices/:id'].includes(path))
 const portalRoutes = Object.entries(routeMeta).filter(([path]) => path.startsWith('/portal/'))
 
 export default function AppRoutes() {
@@ -18,11 +21,12 @@ export default function AppRoutes() {
       <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<DashboardPage />} />
       <Route path="customers" element={<CustomersPage />} />
+      <Route path="products" element={<ProductsPage />} />
+      <Route path="products/:id" element={<ProductDetailPage />} />
       <Route path="subscriptions" element={<SubscriptionsPage />} />
       <Route path="invoices" element={<InvoicesPage />} />
       {adminPlaceholderRoutes.map(([path, meta]) => <Route key={path} path={path.slice('/admin/'.length)} element={<ModulePage meta={meta} />} />)}
       <Route path="customers/:id" element={<ModulePage meta={routeMeta['/admin/customers/:id']} />} />
-      <Route path="products/:id" element={<ModulePage meta={routeMeta['/admin/products/:id']} />} />
       <Route path="subscriptions/:id" element={<ModulePage meta={routeMeta['/admin/subscriptions/:id']} />} />
       <Route path="invoices/:id" element={<ModulePage meta={routeMeta['/admin/invoices/:id']} />} />
     </Route>
