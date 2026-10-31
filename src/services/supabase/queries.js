@@ -317,3 +317,55 @@ export async function validateDiscountCode(code) {
     error: null,
   }
 }
+
+// ─── CUSTOMER QUERIES ───────────────────────────────────────
+
+/**
+ * Fetch all customers from Supabase
+ */
+export async function fetchCustomers() {
+  if (!isSupabaseConfigured || !supabase) {
+    return { data: null, error: null }
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  return { data, error }
+}
+
+/**
+ * Create a new customer in Supabase
+ */
+export async function createCustomer(customer) {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      data: {
+        id: `cus_${Date.now()}`,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone || '+91 98765 43210',
+        billing_address: customer.billing_address || customer.region || 'India',
+        created_at: new Date().toISOString(),
+      },
+      error: null,
+    }
+  }
+
+  const record = {
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone || null,
+    billing_address: customer.billing_address || customer.region || null,
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .insert([record])
+    .select()
+    .single()
+
+  return { data, error }
+}

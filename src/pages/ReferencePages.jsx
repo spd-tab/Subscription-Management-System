@@ -1,8 +1,9 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
 import { ArrowDownToLine, ArrowRight, CalendarDays, Clock3, Globe2, Phone, Plus, RefreshCw, SlidersHorizontal, TrendingUp, UsersRound, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { customers, dashboardStats, invoices, subscriptions } from '../data/mockData'
 import { Button, MetricCard, Modal, SearchBar, StatusBadge } from '../components/common/UI'
+import { fetchCustomers, createCustomer } from '../services/supabase/queries'
 
 const TrendChart = lazy(() => import('../components/charts/TrendChart.jsx'))
 
@@ -27,19 +28,91 @@ export function DashboardPage() {
 }
 
 export function CustomersPage() {
+  const [customerList, setCustomerList] = useState(customers)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
   const [showForm, setShowForm] = useState(false)
   const navigate = useNavigate()
-  const filtered = customers.filter((customer) => (filter === 'All' || (filter === 'At Risk' ? customer.status !== 'Healthy' : customer.segment === filter)) && `${customer.name} ${customer.email} ${customer.contact}`.toLowerCase().includes(search.toLowerCase()))
+
+  const loadCustomers = useCallback(async () => {
+    const { data, error } = await fetchCustomers()
+    if (!error && data && data.length > 0) {
+      const formatted = data.map((c) => ({
+        id: c.id,
+        name: c.name,
+        contact: c.name,
+        email: c.email,
+        phone: c.phone || '+91 98765 43210',
+        region: c.billing_address || 'India',
+        added: c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recently',
+        plan: 'Standard Plan',
+        subscriptions: 1,
+        mrr: 1500,
+        invoices: '1 Paid • 0 Overdue',
+        status: 'Healthy',
+        segment: 'SMB',
+      }))
+      const existingEmails = new Set(formatted.map((c) => c.email.toLowerCase()))
+      const rest = customers.filter((c) => !existingEmails.has(c.email.toLowerCase()))
+      setCustomerList([...formatted, ...rest])
+    }
+  }, [])
+
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
+
+  const handleAddCustomer = async (e) => {
+    e.preventDefault()
+    const form = e.target
+    const name = form.name.value
+    const email = form.email.value
+    const phone = form.phone.value || '+91 98765 43210'
+    const address = form.billing_address.value || 'India'
+    const segment = form.segment.value || 'SMB'
+
+    const newCustomer = {
+      name,
+      email,
+      phone,
+      billing_address: address,
+      region: address,
+      segment,
+    }
+
+    const { data } = await createCustomer(newCustomer)
+
+    const createdRecord = {
+      id: data?.id || `cus_${Date.now()}`,
+      name,
+      contact: name,
+      email,
+      phone,
+      region: address,
+      added: 'Just now',
+      plan: 'Starter Plan',
+      subscriptions: 0,
+      mrr: 0,
+      invoices: '0 Invoices',
+      status: 'Healthy',
+      segment,
+    }
+
+    customers.unshift(createdRecord)
+    setCustomerList((prev) => [createdRecord, ...prev])
+    setShowForm(false)
+  }
+
+  const filtered = customerList.filter((customer) => (filter === 'All' || (filter === 'At Risk' ? customer.status !== 'Healthy' : customer.segment === filter)) && `${customer.name} ${customer.email} ${customer.contact || ''} ${customer.phone || ''}`.toLowerCase().includes(search.toLowerCase()))
+
   return <><PageHeading title="Customers" description="Manage accounts and billing profiles"><Button onClick={() => setShowForm(true)}><Plus size={19} /> Add Customer</Button></PageHeading>
-    <div className="customer-metrics"><MetricCard label="Total accts" value="948" delta="↗ +14/mo" /><MetricCard label="Avg LTV" value="$14,200" delta="↗ +5.8%" /><MetricCard label="Active rate" value="96.2%" delta="● Optimal" /></div>
+    <div className="customer-metrics"><MetricCard label="Total accts" value={customerList.length.toString()} delta="↗ +14/mo" /><MetricCard label="Avg LTV" value="$14,200" delta="↗ +5.8%" /><MetricCard label="Active rate" value="96.2%" delta="● Optimal" /></div>
     <SearchBar value={search} onChange={setSearch} placeholder="Lookup by name, email, or domain..." />
-    <div className="filter-tabs">{['All', 'Enterprise', 'SMB', 'At Risk', 'High MRR'].map((tab) => <button key={tab} onClick={() => setFilter(tab)} className={filter === tab ? 'selected' : ''}>{tab}{tab === 'All' ? ' (948)' : ''}</button>)}</div>
+    <div className="filter-tabs">{['All', 'Enterprise', 'SMB', 'At Risk', 'High MRR'].map((tab) => <button key={tab} onClick={() => setFilter(tab)} className={filter === tab ? 'selected' : ''}>{tab}{tab === 'All' ? ` (${customerList.length})` : ''}</button>)}</div>
     <div className="table-caption"><span>Showing {filtered.length} verified accounts</span><span>↕ Sorted by MRR</span></div>
-    <div className="customer-cards">{filtered.map((customer, index) => <article className="customer-card" key={customer.id} onClick={() => navigate(`/admin/customers/${customer.id}`)}><div className="customer-top"><span className={`company-avatar company-${index}`}>{customer.name.split(' ').map((word) => word[0]).slice(0, 2).join('')}</span><div className="customer-identity"><strong>{customer.name}</strong><span>{customer.contact} • {customer.email}</span></div><StatusBadge>{customer.status}</StatusBadge></div><div className="customer-stats"><div><small>Subscriptions</small><span>{customer.subscriptions} Active <em>(${customer.mrr.toLocaleString()}/mo)</em></span></div><div><small>Invoices</small><span>{customer.invoices}</span></div></div><div className="customer-meta"><span><Phone size={15} /> {customer.phone}</span><span><Globe2 size={15} /> {customer.region}</span><small>Added {customer.added}</small></div></article>)}</div>
+    <div className="customer-cards">{filtered.map((customer, index) => <article className="customer-card" key={customer.id} onClick={() => navigate(`/admin/customers/${customer.id}`)}><div className="customer-top"><span className={`company-avatar company-${index % 4}`}>{customer.name.split(' ').map((word) => word[0]).slice(0, 2).join('')}</span><div className="customer-identity"><strong>{customer.name}</strong><span>{customer.contact} • {customer.email}</span></div><StatusBadge>{customer.status}</StatusBadge></div><div className="customer-stats"><div><small>Subscriptions</small><span>{customer.subscriptions} Active <em>(${customer.mrr.toLocaleString()}/mo)</em></span></div><div><small>Invoices</small><span>{customer.invoices}</span></div></div><div className="customer-meta"><span><Phone size={15} /> {customer.phone}</span><span><Globe2 size={15} /> {customer.region}</span><small>Added {customer.added}</small></div></article>)}</div>
     {filtered.length === 0 && <div className="empty-state">No accounts match your search.</div>}
-    {showForm && <Modal title="Add customer" onClose={() => setShowForm(false)}><form className="modal-form" onSubmit={(event) => { event.preventDefault(); setShowForm(false) }}><label>Company name<input required placeholder="Company, Inc." /></label><label>Contact email<input required type="email" placeholder="name@company.com" /></label><Button type="submit">Add customer</Button></form></Modal>}
+    {showForm && <Modal title="Add customer" onClose={() => setShowForm(false)}><form className="modal-form" onSubmit={handleAddCustomer}><label>Company / Customer name<input name="name" required placeholder="Company, Inc." /></label><label>Contact email<input name="email" required type="email" placeholder="name@company.com" /></label><label>Phone number<input name="phone" placeholder="+91 98765 43210" /></label><label>Billing address / Region<input name="billing_address" placeholder="Plot 42, Cyber City, Gurugram" /></label><label>Segment<select name="segment" defaultValue="SMB"><option value="SMB">SMB</option><option value="Enterprise">Enterprise</option></select></label><Button type="submit">Add customer</Button></form></Modal>}
   </>
 }
 
