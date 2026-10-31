@@ -107,10 +107,29 @@ export async function createPayment(payment) {
     return { data: newPayment, error: null }
   }
 
+  // Resolve invoice_id: check if it's a UUID or invoice_number
+  let resolvedInvoiceId = null
+  if (payment.invoice_id) {
+    const cleanId = String(payment.invoice_id).trim()
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId)
+    if (isUuid) {
+      resolvedInvoiceId = cleanId
+    } else {
+      const { data: inv } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('invoice_number', cleanId)
+        .maybeSingle()
+      if (inv?.id) {
+        resolvedInvoiceId = inv.id
+      }
+    }
+  }
+
   // Map to contract column names
   const record = {
     payment_number: payment.payment_number || `PAY-${Date.now().toString().slice(-4)}`,
-    invoice_id: payment.invoice_id,
+    invoice_id: resolvedInvoiceId,
     amount: payment.amount,
     payment_method: payment.payment_method || payment.method || 'card',
     payment_date: payment.payment_date || payment.paid_at || new Date().toISOString(),

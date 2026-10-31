@@ -50,7 +50,7 @@ function Shell({ customer }) {
   const currentLabel = [...primaryLinks, ...extraLinks, ...portalLinks].find((item) => item.to === location.pathname)?.label ?? 'Brightloop'
 
   const userName = profile?.full_name || (customer ? 'Customer' : 'Administrator')
-  const userInitials = userName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  const userInitials = (userName.trim().split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 2) || 'U').toUpperCase()
   const userRole = profile?.role
     ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
     : customer ? 'Customer' : 'Administrator'

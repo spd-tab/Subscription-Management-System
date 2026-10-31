@@ -30,36 +30,39 @@ export default function PaymentsPage() {
 
   useEffect(() => { loadPayments() }, [loadPayments])
 
+  const [formError, setFormError] = useState('')
+
   // Compute summary metrics
-  const totalPaid = payments.filter((p) => p.status === 'Paid' || p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0)
-  const totalPending = payments.filter((p) => p.status === 'Pending' || p.status === 'pending').reduce((sum, p) => sum + (p.amount || 0), 0)
-  const totalConfirmed = payments.filter((p) => p.status === 'Confirmed' || p.status === 'confirmed').reduce((sum, p) => sum + (p.amount || 0), 0)
+  const totalPaid = payments.filter((p) => p.status === 'Paid' || p.status === 'paid').reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+  const totalPending = payments.filter((p) => p.status === 'Pending' || p.status === 'pending').reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+  const totalConfirmed = payments.filter((p) => p.status === 'Confirmed' || p.status === 'confirmed').reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
 
   const columns = ['Payment', 'Customer', 'Method', 'Amount', 'Date', 'Status']
   const rows = payments.map((p) => [
     p.payment_number || p.id,
-    p.customer_name || p.customer,
-    p.method,
-    `$${(p.amount || 0).toLocaleString()}`,
-    p.paid_at || p.date || '-',
-    p.status,
+    p.customer_name || p.customer || 'Customer',
+    p.method || p.payment_method || 'other',
+    `₹${(Number(p.amount) || 0).toLocaleString()}`,
+    p.paid_at || (p.payment_date ? new Date(p.payment_date).toLocaleDateString() : p.date || '-'),
+    p.status || 'paid',
   ])
 
   const methodIcon = (method) => {
     const m = (method || '').toLowerCase()
     if (m.includes('card') || m.includes('visa') || m.includes('stripe')) return <CreditCard size={16} />
-    if (m.includes('ach')) return <Building2 size={16} />
-    if (m.includes('wire')) return <Banknote size={16} />
+    if (m.includes('ach') || m.includes('bank')) return <Building2 size={16} />
+    if (m.includes('wire') || m.includes('cash')) return <Banknote size={16} />
     return <FileCheck size={16} />
   }
 
   const handleRecordPayment = async (e) => {
     e.preventDefault()
+    setFormError('')
     const form = e.target
     const payment = {
       payment_number: `PAY-${Date.now().toString().slice(-4)}`,
       customer_name: form.customer.value,
-      invoice_id: form.invoice.value || null,
+      invoice_id: form.invoice.value ? form.invoice.value.trim() : null,
       amount: parseFloat(form.amount.value),
       method: form.method.value,
       status: 'paid',
@@ -71,6 +74,8 @@ export default function PaymentsPage() {
     if (!error) {
       setShowForm(false)
       loadPayments()
+    } else {
+      setFormError(error.message || 'Failed to record payment. Please verify invoice or payment details.')
     }
   }
 
@@ -198,6 +203,9 @@ export default function PaymentsPage() {
               <input name="notes" placeholder="Additional notes" />
             </label>
 
+            {formError && (
+              <small className="form-message form-message-error">{formError}</small>
+            )}
             <Button type="submit">Record Payment</Button>
             <small>Payment will be recorded and linked to the invoice if provided.</small>
           </form>
