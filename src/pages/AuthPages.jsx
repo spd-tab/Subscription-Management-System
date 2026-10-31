@@ -31,14 +31,17 @@ function AuthForm({ mode }) {
 
     try {
       if (mode === 'login') {
-        const { error } = await signIn({ email, password })
+        const { data, error } = await signIn({ email, password })
         if (error) {
           setMessage(error.message || 'Invalid credentials. Please try again.')
           setMessageType('error')
         } else {
-          // Redirect to where they were trying to go, or default based on role
-          const redirectTo = from || '/admin/dashboard'
-          navigate(redirectTo, { replace: true })
+          if (from) {
+            navigate(from, { replace: true })
+          } else {
+            const userRole = data?.user?.user_metadata?.role || (email.includes('customer') || email.includes('alex') ? 'customer' : 'admin')
+            navigate(userRole === 'customer' ? '/portal/dashboard' : '/admin/dashboard', { replace: true })
+          }
         }
       } else if (mode === 'register') {
         const { error } = await signUp({ email, password, fullName })

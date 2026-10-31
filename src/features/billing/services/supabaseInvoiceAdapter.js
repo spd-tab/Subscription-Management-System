@@ -1,5 +1,5 @@
 import { supabase } from '../../../services/supabase/client.js'
-import { getLocalDateOnly, calculateDiscountAmount, calculateInvoiceItemTotals, calculateInvoiceLinesSubtotal } from './calculationUtils.js'
+import { getLocalDateOnly, isValidDateOnly, calculateDiscountAmount, calculateInvoiceItemTotals, calculateInvoiceLinesSubtotal } from './calculationUtils.js'
 import { validateInvoiceDraft } from './invoiceValidation.js'
 
 const INVOICE_SELECT = '*,customer:customers(id,name,email),subscription:subscriptions(id,subscription_number),items:invoice_items(id,product_id,variant_id,description,quantity,unit_price,subtotal,discount_amount,taxable_amount,tax_rate_percent,tax_amount,total_amount,product:products(name),variant:product_variants(name))'
@@ -202,8 +202,17 @@ export function createSupabaseInvoiceAdapter(client = supabase) {
       return this.getById(createdInvoice.id)
     },
 
-    async requestGeneration() {
-      throw new Error('Recurring invoice generation is unavailable: the schema has no trusted generation RPC. See RECURRING_INVOICE_RPC_SPEC.md; do not generate recurring invoices directly from the browser.')
+    async requestGeneration({ asOfDate = getLocalDateOnly() } = {}) {
+      if (!isValidDateOnly(asOfDate)) throw new TypeError('Invoice generation date must be a valid calendar date.')
+      const result = await client.rpc('generate_recurring_invoices', {
+        p_as_of_date: asOfDate,
+      })
+      const data = assertQuery(result, 'Unable to generate recurring invoices')
+      return {
+        requested: Number(data.generated_count ?? 0),
+        results: data.invoices ?? [],
+        summary: data,
+      }
     },
   }
 }

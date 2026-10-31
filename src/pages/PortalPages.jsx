@@ -199,7 +199,7 @@ export function PortalPaymentsPage() {
   }, [user])
 
   const filtered = payments.filter((p) =>
-    `${p.id || p.payment_number} ${p.customer || p.customer_name} ${p.method}`
+    `${p.id || p.payment_number || ''} ${p.customer || p.customer_name || ''} ${p.method || p.payment_method || ''}`
       .toLowerCase()
       .includes(search.toLowerCase())
   )
@@ -224,15 +224,15 @@ export function PortalPaymentsPage() {
               </div>
               <div className="portal-payment-info">
                 <strong>{p.id || p.payment_number}</strong>
-                <small>{p.method}</small>
+                <small>{p.method || p.payment_method || 'Online Payment'}</small>
               </div>
               <div className="portal-payment-right">
-                <strong>${(p.amount || 0).toLocaleString()}</strong>
-                <StatusBadge>{p.status}</StatusBadge>
+                <strong>₹{(Number(p.amount) || 0).toLocaleString()}</strong>
+                <StatusBadge>{p.status || 'paid'}</StatusBadge>
               </div>
             </div>
             <div className="portal-payment-date">
-              <small>{p.paid_at || p.date || '-'}</small>
+              <small>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : p.paid_at || p.date || '-'}</small>
             </div>
           </article>
         ))}

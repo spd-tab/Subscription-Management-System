@@ -64,7 +64,7 @@ export function prepareInvoiceLineItems(subscription, period = determineBillingP
     unitPrice: item.unitPrice,
     productId: item.productId ?? item.product_id ?? null,
     variantId: item.variantId ?? item.variant_id ?? null,
-    taxRatePercent: Number(item.taxRatePercent ?? item.tax_rate_percent ?? 0),
+    taxRatePercent: item.taxRatePercent ?? item.tax_rate_percent,
     amount: calculateInvoiceLinesSubtotal([item]),
     periodStart: period.startDate,
     periodEndExclusive: period.endDateExclusive,

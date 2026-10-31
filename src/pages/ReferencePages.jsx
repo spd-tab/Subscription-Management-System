@@ -364,6 +364,7 @@ export function DashboardPage() {
 // ==========================================
 
 export function CustomersPage() {
+  const [customerList, setCustomerList] = useState(customers)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
   const [showForm, setShowForm] = useState(false)

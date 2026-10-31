@@ -13,7 +13,8 @@ export default function DiscountsPage() {
   const [editingDiscount, setEditingDiscount] = useState(null)
   const [copiedCode, setCopiedCode] = useState(null)
   const [loading, setLoading] = useState(true)
-  const { isAdmin } = useAuth()
+  const { isAdmin, isStaff } = useAuth()
+  const canManage = isAdmin || isStaff
 
   const loadDiscounts = useCallback(async () => {
     setLoading(true)
@@ -91,7 +92,7 @@ export default function DiscountsPage() {
           <h1>Discounts</h1>
           <p>Manage promotional codes and customer offers</p>
         </div>
-        {isAdmin && (
+        {canManage && (
           <Button onClick={() => { setEditingDiscount(null); setShowForm(true) }}>
             <Plus size={18} /> Create Discount
           </Button>
@@ -192,7 +193,7 @@ export default function DiscountsPage() {
                 )}
               </div>
 
-              {isAdmin && (
+              {canManage && (
                 <div className="discount-card-actions">
                   <Button variant="secondary" onClick={() => handleEdit(discount)}>
                     <Pencil size={14} /> Edit
