@@ -45,7 +45,8 @@ function AuthForm({ mode }) {
           }
         }
       } else if (mode === 'register') {
-        const { error } = await signUp({ email, password, fullName, role })
+        // Enforce customer role for public self-registration
+        const { error } = await signUp({ email, password, fullName, role: 'customer' })
         if (error) {
           setMessage(error.message || 'Registration failed. Please try again.')
           setMessageType('error')
@@ -117,16 +118,7 @@ function AuthForm({ mode }) {
           </label>
         )}
 
-        {mode === 'register' && (
-          <label>
-            Account type
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="customer">Customer</option>
-              <option value="staff">Staff</option>
-              <option value="admin">Administrator</option>
-            </select>
-          </label>
-        )}
+
 
         {mode === 'login' && (
           <Link className="auth-link forgot-link" to="/forgot-password">

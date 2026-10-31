@@ -1,50 +1,73 @@
 import { supabase, isSupabaseConfigured } from './client'
-import { payments as mockPayments } from '../../data/mockData'
+import { payments as mockPayments, customers as mockCustomers, subscriptions as mockSubscriptions, invoices as mockInvoices } from '../../data/mockData'
 
 // ─── PAYMENT QUERIES ────────────────────────────────────────
+
+/**
+ * Standardize payment method string to match the PostgreSQL constraint:
+ * ('cash', 'bank_transfer', 'card', 'UPI', 'cheque', 'other')
+ */
+export function normalizePaymentMethod(method) {
+  if (!method) return 'card'
+  const m = String(method).trim().toLowerCase()
+  if (m === 'upi') return 'UPI'
+  if (m === 'card' || m === 'credit_card' || m === 'debit_card') return 'card'
+  if (m === 'bank_transfer' || m === 'wire' || m === 'ach' || m === 'net_banking') return 'bank_transfer'
+  if (m === 'cash') return 'cash'
+  if (m === 'cheque' || m === 'check') return 'cheque'
+  return 'other'
+}
 
 /**
  * Fetch all payments. Admins/staff see all; customers see their own (enforced by RLS).
  */
 export async function fetchPayments({ search = '', status = 'all', page = 1, perPage = 10 } = {}) {
   if (!isSupabaseConfigured || !supabase) {
-    // Demo mode: filter mock data
     let filtered = [...mockPayments]
     if (search) {
       const q = search.toLowerCase()
       filtered = filtered.filter((p) => `${p.id} ${p.customer} ${p.method}`.toLowerCase().includes(q))
     }
     if (status !== 'all') {
-      filtered = filtered.filter((p) => p.status.toLowerCase() === status.toLowerCase())
+      filtered = filtered.filter((p) => (p.status || '').toLowerCase() === status.toLowerCase())
     }
     return { data: filtered, count: filtered.length, error: null }
   }
 
-  let query = supabase.from('payments').select('*, invoice:invoices(invoice_number, customer:customers(name))', { count: 'exact' })
+  try {
+    let query = supabase.from('payments').select('*, invoice:invoices(invoice_number, customer:customers(name))', { count: 'exact' })
 
-  if (search) {
-    query = query.or(`payment_number.ilike.%${search}%,reference.ilike.%${search}%`)
+    if (search) {
+      query = query.or(`payment_number.ilike.%${search}%,reference.ilike.%${search}%`)
+    }
+    if (status !== 'all') {
+      query = query.eq('status', status.toLowerCase())
+    }
+
+    query = query.order('created_at', { ascending: false })
+      .range((page - 1) * perPage, page * perPage - 1)
+
+    const { data, count, error } = await query
+
+    if (error) {
+      return { data: [], count: 0, error }
+    }
+
+    const normalized = (data || []).map((p) => ({
+      ...p,
+      id: p.payment_number || p.id,
+      customer: p.invoice?.customer?.name || (p.note?.startsWith('Customer: ') ? p.note.replace(/^Customer:\s*/, '').split('|')[0].trim() : 'Customer'),
+      customer_name: p.invoice?.customer?.name || (p.note?.startsWith('Customer: ') ? p.note.replace(/^Customer:\s*/, '').split('|')[0].trim() : 'Customer'),
+      method: p.payment_method,
+      paid_at: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-',
+      date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-',
+      status: p.status || 'paid',
+    }))
+
+    return { data: normalized, count, error: null }
+  } catch (err) {
+    return { data: [], count: 0, error: err }
   }
-  if (status !== 'all') {
-    query = query.eq('status', status)
-  }
-
-  query = query.order('created_at', { ascending: false })
-    .range((page - 1) * perPage, page * perPage - 1)
-
-  const { data, count, error } = await query
-
-  const normalized = (data || []).map((p) => ({
-    ...p,
-    id: p.payment_number || p.id,
-    customer: p.invoice?.customer?.name || 'Customer',
-    customer_name: p.invoice?.customer?.name || 'Customer',
-    method: p.payment_method,
-    paid_at: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-',
-    date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-',
-  }))
-
-  return { data: normalized, count, error }
 }
 
 /**
@@ -95,19 +118,19 @@ export async function fetchPaymentsByCustomer(customerId) {
 }
 
 /**
- * Record a new payment (conforming to Brightloop Contract)
+ * Record a new payment (conforming to Brightloop Contract and recalculation trigger)
  */
 export async function createPayment(payment) {
   if (!isSupabaseConfigured || !supabase) {
     const newPayment = {
       id: `PAY-${Date.now()}`,
       ...payment,
+      payment_method: normalizePaymentMethod(payment.payment_method || payment.method),
       created_at: new Date().toISOString(),
     }
     return { data: newPayment, error: null }
   }
 
-  // Resolve invoice_id: check if it's a UUID or invoice_number
   let resolvedInvoiceId = null
   if (payment.invoice_id) {
     const cleanId = String(payment.invoice_id).trim()
@@ -122,20 +145,23 @@ export async function createPayment(payment) {
         .maybeSingle()
       if (inv?.id) {
         resolvedInvoiceId = inv.id
+      } else {
+        return { data: null, error: { message: `Invoice "${cleanId}" was not found.` } }
       }
     }
   }
 
-  // Map to contract column names
   const record = {
     payment_number: payment.payment_number || `PAY-${Date.now().toString().slice(-4)}`,
     invoice_id: resolvedInvoiceId,
-    amount: payment.amount,
-    payment_method: payment.payment_method || payment.method || 'card',
+    amount: parseFloat(payment.amount),
+    payment_method: normalizePaymentMethod(payment.payment_method || payment.method),
     payment_date: payment.payment_date || payment.paid_at || new Date().toISOString(),
     reference: payment.reference || null,
-    note: payment.note || payment.notes || null,
-    status: payment.status || 'paid',
+    note: payment.customer_name
+      ? `Customer: ${payment.customer_name}${payment.note || payment.notes ? ' | ' + (payment.note || payment.notes) : ''}`
+      : payment.note || payment.notes || null,
+    status: (payment.status || 'paid').toLowerCase(),
   }
 
   const { data, error } = await supabase
@@ -155,9 +181,17 @@ export async function updatePayment(id, updates) {
     return { data: { id, ...updates }, error: null }
   }
 
+  const payload = { ...updates }
+  if (payload.payment_method || payload.method) {
+    payload.payment_method = normalizePaymentMethod(payload.payment_method || payload.method)
+  }
+  if (payload.status) {
+    payload.status = payload.status.toLowerCase()
+  }
+
   const { data, error } = await supabase
     .from('payments')
-    .update(updates)
+    .update(payload)
     .eq('id', id)
     .select()
     .single()
@@ -174,9 +208,6 @@ const mockDiscounts = [
   { id: '4', name: 'Partner Referral Pass', code: 'PARTNER25', description: 'Partner referral discount', type: 'percentage', value: 25, min_order_amount: 0, max_uses: 100, current_uses: 67, start_date: '2024-06-01', end_date: '2025-06-01', status: 'active', created_at: '2024-06-01' },
 ]
 
-/**
- * Fetch all discounts (maps DB contract columns to UI properties)
- */
 export async function fetchDiscounts({ search = '', status = 'all' } = {}) {
   if (!isSupabaseConfigured || !supabase) {
     let filtered = [...mockDiscounts]
@@ -223,9 +254,6 @@ export async function fetchDiscounts({ search = '', status = 'all' } = {}) {
   return { data: normalized, error }
 }
 
-/**
- * Create a new discount (maps UI properties to contract columns)
- */
 export async function createDiscount(discount) {
   if (!isSupabaseConfigured || !supabase) {
     return { data: { id: `disc-${Date.now()}`, ...discount, current_uses: 0, created_at: new Date().toISOString() }, error: null }
@@ -254,9 +282,6 @@ export async function createDiscount(discount) {
   return { data, error }
 }
 
-/**
- * Update a discount
- */
 export async function updateDiscount(id, updates) {
   if (!isSupabaseConfigured || !supabase) {
     return { data: { id, ...updates }, error: null }
@@ -284,9 +309,6 @@ export async function updateDiscount(id, updates) {
   return { data, error }
 }
 
-/**
- * Delete a discount
- */
 export async function deleteDiscount(id) {
   if (!isSupabaseConfigured || !supabase) {
     return { error: null }
@@ -296,9 +318,6 @@ export async function deleteDiscount(id) {
   return { error }
 }
 
-/**
- * Validate a discount code against database contract
- */
 export async function validateDiscountCode(code) {
   if (!isSupabaseConfigured || !supabase) {
     const discount = mockDiscounts.find((d) => d.code === code && d.status === 'active')
@@ -337,27 +356,48 @@ export async function validateDiscountCode(code) {
   }
 }
 
-// ─── CUSTOMER QUERIES ───────────────────────────────────────
+// ─── CUSTOMER MANAGEMENT QUERIES ────────────────────────────
 
-/**
- * Fetch all customers from Supabase
- */
 export async function fetchCustomers() {
   if (!isSupabaseConfigured || !supabase) {
-    return { data: null, error: null }
+    return { data: mockCustomers, error: null }
   }
 
   const { data, error } = await supabase
     .from('customers')
-    .select('*')
+    .select(`
+      *,
+      subscriptions:subscriptions(count),
+      invoices:invoices(count)
+    `)
     .order('created_at', { ascending: false })
+
+  if (error) {
+    return { data: [], error }
+  }
+
+  return { data, error: null }
+}
+
+export async function fetchCustomerById(customerId) {
+  if (!isSupabaseConfigured || !supabase) {
+    const found = mockCustomers.find((c) => c.id === customerId) || mockCustomers[0]
+    return { data: found, error: null }
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select(`
+      *,
+      subscriptions:subscriptions(*, plan:plans(name)),
+      invoices:invoices(*)
+    `)
+    .eq('id', customerId)
+    .maybeSingle()
 
   return { data, error }
 }
 
-/**
- * Create a new customer in Supabase
- */
 export async function createCustomer(customer) {
   if (!isSupabaseConfigured || !supabase) {
     return {
@@ -387,4 +427,180 @@ export async function createCustomer(customer) {
     .single()
 
   return { data, error }
+}
+
+export async function updateCustomer(customerId, updates) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { data: { id: customerId, ...updates }, error: null }
+  }
+
+  const payload = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .update(payload)
+    .eq('id', customerId)
+    .select()
+    .single()
+
+  return { data, error }
+}
+
+export async function fetchCustomerSubscriptions(customerId) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { data: mockSubscriptions, error: null }
+  }
+
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*, plan:plans(name)')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+
+  return { data, error }
+}
+
+export async function fetchCustomerInvoices(customerId) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { data: mockInvoices, error: null }
+  }
+
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*, items:invoice_items(*), payments:payments(*)')
+    .eq('customer_id', customerId)
+    .order('issue_date', { ascending: false })
+
+  return { data, error }
+}
+
+// ─── CUSTOMER PORTAL QUERIES ────────────────────────────────
+
+export async function fetchPortalCustomer(authUserId, userEmail) {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      data: {
+        id: 'cust_demo_portal',
+        name: 'Alex Morgan',
+        email: userEmail || 'alex@company.com',
+        phone: '+91 98765 43210',
+        billing_address: 'Bangalore, India',
+      },
+      error: null,
+    }
+  }
+
+  if (authUserId) {
+    const { data: byAuth, error: authErr } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle()
+
+    if (byAuth) return { data: byAuth, error: null }
+  }
+
+  if (userEmail) {
+    const { data: byEmail, error: emailErr } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', userEmail)
+      .maybeSingle()
+
+    if (byEmail) return { data: byEmail, error: null }
+  }
+
+  return { data: null, error: { message: 'Customer profile not found' } }
+}
+
+export async function fetchPortalDashboardStats(customerId) {
+  if (!isSupabaseConfigured || !supabase || !customerId) {
+    return {
+      activeSubsCount: 2,
+      nextInvoiceDue: '₹4,500',
+      nextInvoiceDate: 'Next cycle',
+      totalPaidYtd: '₹35,400',
+      recentActivity: [
+        { icon: 'CreditCard', text: 'Payment of ₹25,000 received', detail: 'Cloud ERP Suite', time: 'Recently', status: 'paid' },
+        { icon: 'FileText', text: 'Invoice #INV-2025-001 confirmed', detail: 'Annual Subscription', time: 'Recently', status: 'confirmed' },
+      ],
+    }
+  }
+
+  try {
+    const { data: subs } = await supabase
+      .from('subscriptions')
+      .select('id, status')
+      .eq('customer_id', customerId)
+      .eq('status', 'active')
+
+    const { data: invs } = await supabase
+      .from('invoices')
+      .select('id, invoice_number, total_amount, amount_paid, due_date, status')
+      .eq('customer_id', customerId)
+      .order('due_date', { ascending: true })
+
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('id, amount, payment_date, payment_method, status, invoice:invoices!inner(customer_id)')
+      .eq('invoice.customer_id', customerId)
+      .order('payment_date', { ascending: false })
+
+    const activeCount = subs?.length || 0
+    const pendingInv = (invs || []).find((i) => i.status === 'confirmed' || i.status === 'draft')
+    const paidPayments = (payments || []).filter((p) => p.status === 'paid' || p.status === 'confirmed')
+    const totalPaid = paidPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+
+    const activity = []
+    if (payments && payments[0]) {
+      activity.push({
+        icon: 'CreditCard',
+        text: `Payment of ₹${Number(payments[0].amount).toLocaleString()} recorded`,
+        detail: payments[0].payment_method || 'Online Payment',
+        time: payments[0].payment_date ? new Date(payments[0].payment_date).toLocaleDateString() : 'Recently',
+        status: payments[0].status,
+      })
+    }
+    if (invs && invs[0]) {
+      activity.push({
+        icon: 'FileText',
+        text: `Invoice #${invs[0].invoice_number} generated`,
+        detail: `₹${Number(invs[0].total_amount).toLocaleString()} due`,
+        time: invs[0].due_date || 'Upcoming',
+        status: invs[0].status,
+      })
+    }
+
+    return {
+      activeSubsCount: activeCount,
+      nextInvoiceDue: pendingInv ? `₹${(Number(pendingInv.total_amount) - Number(pendingInv.amount_paid)).toLocaleString()}` : '₹0',
+      nextInvoiceDate: pendingInv?.due_date ? `Due ${pendingInv.due_date}` : 'All settled',
+      totalPaidYtd: `₹${totalPaid.toLocaleString()}`,
+      recentActivity: activity.length ? activity : [
+        { icon: 'FileText', text: 'Account created', detail: 'Welcome to Brightloop', time: 'Recently', status: 'active' },
+      ],
+    }
+  } catch {
+    return {
+      activeSubsCount: 1,
+      nextInvoiceDue: '₹0',
+      nextInvoiceDate: 'All settled',
+      totalPaidYtd: '₹0',
+      recentActivity: [],
+    }
+  }
+}
+
+export async function payInvoice({ invoiceId, amount, paymentMethod, reference, note }) {
+  return createPayment({
+    invoice_id: invoiceId,
+    amount: parseFloat(amount),
+    payment_method: paymentMethod || 'card',
+    reference: reference || `REF-${Date.now().toString().slice(-6)}`,
+    note: note || 'Paid via Customer Portal',
+    status: 'paid',
+  })
 }

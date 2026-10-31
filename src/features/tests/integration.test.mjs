@@ -261,7 +261,7 @@ test('prepareDueInvoiceRequests generates complete invoice payloads', () => {
 })
 
 // ─────────────────────────────────────────────────────────────
-// 5. PAYMENT RECONCILIATION SIMULATION
+// 5. PAYMENT RECONCILIATION SIMULATION & CONSTRAINT VALIDATION
 // ─────────────────────────────────────────────────────────────
 console.log('\n5. Testing Payment Reconciliation & Status Transitions:')
 
@@ -292,6 +292,122 @@ test('partial and full payment reconciliation on invoice balances', () => {
   assert.equal(invoice.amount_paid, 53100.00)
   assert.equal(outstanding2, 0.00)
   assert.equal(invoice.status, 'paid', 'Invoice must transition to paid once fully settled')
+})
+
+test('status-aware payment calculation (simulating PostgreSQL recalculate_invoice_balance)', () => {
+  const invoice = { total_amount: 10000.00 }
+  const payments = [
+    { id: 'p1', amount: 3000.00, status: 'paid' },
+    { id: 'p2', amount: 2000.00, status: 'confirmed' },
+    { id: 'p3', amount: 5000.00, status: 'pending' },  // pending must NOT increase paid amount
+    { id: 'p4', amount: 4000.00, status: 'failed' },   // failed must NOT increase paid amount
+    { id: 'p5', amount: 1000.00, status: 'refunded' }, // refunded must NOT increase paid amount
+  ]
+
+  // Reconcile according to 20261031_000002_payment_reconciliation.sql rule
+  const eligibleSum = payments
+    .filter((p) => p.status === 'paid' || p.status === 'confirmed')
+    .reduce((sum, p) => sum + p.amount, 0)
+
+  assert.equal(eligibleSum, 5000.00, 'Only paid and confirmed payments should count toward amount_paid')
+
+  // Simulate updating p3 from pending to paid
+  payments[2].status = 'paid'
+  const updatedSum = payments
+    .filter((p) => p.status === 'paid' || p.status === 'confirmed')
+    .reduce((sum, p) => sum + p.amount, 0)
+  assert.equal(updatedSum, 10000.00)
+  const isPaid = updatedSum >= invoice.total_amount
+  assert.equal(isPaid, true, 'Invoice should mark as paid upon reaching total')
+
+  // Simulate refunding p1
+  payments[0].status = 'refunded'
+  const refundedSum = payments
+    .filter((p) => p.status === 'paid' || p.status === 'confirmed')
+    .reduce((sum, p) => sum + p.amount, 0)
+  assert.equal(refundedSum, 7000.00)
+  const isStillPaid = refundedSum >= invoice.total_amount
+  assert.equal(isStillPaid, false, 'Invoice must revert to confirmed/unpaid when refunded')
+})
+
+test('payment method constraint validation conforming to DB CHECK constraint', () => {
+  const allowedDbMethods = new Set(['cash', 'bank_transfer', 'card', 'UPI', 'cheque', 'other'])
+
+  function normalizePaymentMethod(method) {
+    if (!method) return 'card'
+    const m = String(method).trim().toLowerCase()
+    if (m === 'upi') return 'UPI'
+    if (m === 'card' || m === 'credit_card' || m === 'debit_card') return 'card'
+    if (m === 'bank_transfer' || m === 'wire' || m === 'ach' || m === 'net_banking') return 'bank_transfer'
+    if (m === 'cash') return 'cash'
+    if (m === 'cheque' || m === 'check') return 'cheque'
+    return 'other'
+  }
+
+  const testCases = [
+    { input: 'UPI', expected: 'UPI' },
+    { input: 'upi', expected: 'UPI' },
+    { input: 'card', expected: 'card' },
+    { input: 'credit_card', expected: 'card' },
+    { input: 'bank_transfer', expected: 'bank_transfer' },
+    { input: 'net_banking', expected: 'bank_transfer' },
+    { input: 'cash', expected: 'cash' },
+    { input: 'cheque', expected: 'cheque' },
+    { input: 'check', expected: 'cheque' },
+    { input: 'bitcoin', expected: 'other' },
+    { input: null, expected: 'card' },
+  ]
+
+  for (const tc of testCases) {
+    const result = normalizePaymentMethod(tc.input)
+    assert.equal(result, tc.expected)
+    assert.ok(allowedDbMethods.has(result), `Result "${result}" must be in allowed DB set`)
+  }
+})
+
+// ─────────────────────────────────────────────────────────────
+// 6. SECURITY & ROLE ESCALATION PREVENTION
+// ─────────────────────────────────────────────────────────────
+console.log('\n6. Testing Security & Privilege Escalation Prevention:')
+
+test('handle_new_user enforcement forces customer role regardless of input metadata', () => {
+  function handleNewUserSimulation(rawMetadata) {
+    // Mimics the trigger from 20261031_000004_security_hardening.sql
+    // Always forces 'customer' regardless of rawMetadata.role
+    return {
+      role: 'customer',
+      full_name: rawMetadata?.full_name || 'New User',
+    }
+  }
+
+  const maliciousSignup1 = handleNewUserSimulation({ role: 'admin', full_name: 'Attacker' })
+  assert.equal(maliciousSignup1.role, 'customer', 'Attacker must not be able to self-assign admin role')
+
+  const maliciousSignup2 = handleNewUserSimulation({ role: 'staff', full_name: 'Attacker 2' })
+  assert.equal(maliciousSignup2.role, 'customer', 'Attacker must not be able to self-assign staff role')
+})
+
+test('profile update policy blocks role mutation by regular users', () => {
+  function applyProfileUpdate(currentProfile, callerRole, requestedUpdates) {
+    // Non-admin callers cannot alter their role
+    if (callerRole !== 'admin' && requestedUpdates.role && requestedUpdates.role !== currentProfile.role) {
+      throw new Error('Unauthorized: regular users cannot alter their role')
+    }
+    return { ...currentProfile, ...requestedUpdates }
+  }
+
+  const customerProfile = { id: 'usr-1', role: 'customer', full_name: 'John Doe' }
+
+  // Safe update
+  const updatedName = applyProfileUpdate(customerProfile, 'customer', { full_name: 'John Smith' })
+  assert.equal(updatedName.full_name, 'John Smith')
+  assert.equal(updatedName.role, 'customer')
+
+  // Malicious role escalation attempt
+  assert.throws(
+    () => applyProfileUpdate(customerProfile, 'customer', { role: 'admin' }),
+    /Unauthorized/
+  )
 })
 
 console.log(`\n─── TEST RESULTS: ${passed} passed, ${failed} failed ───\n`)

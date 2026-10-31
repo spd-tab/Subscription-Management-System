@@ -5,33 +5,9 @@
 -- Currency: INR (Numeric 12,2) | UUID Primary Keys
 -- ============================================================
 
--- 0. CLEAN RESET PREVIOUS VERSIONS (Ensures clean recreation with contract columns)
-DROP TABLE IF EXISTS public.invoice_discounts CASCADE;
-DROP TABLE IF EXISTS public.discount_products CASCADE;
-DROP TABLE IF EXISTS public.discounts CASCADE;
-DROP TABLE IF EXISTS public.payments CASCADE;
-DROP TABLE IF EXISTS public.invoice_items CASCADE;
-DROP TABLE IF EXISTS public.invoices CASCADE;
-DROP TABLE IF EXISTS public.subscription_items CASCADE;
-DROP TABLE IF EXISTS public.subscriptions CASCADE;
-DROP TABLE IF EXISTS public.quotation_items CASCADE;
-DROP TABLE IF EXISTS public.quotations CASCADE;
-DROP TABLE IF EXISTS public.quotation_templates CASCADE;
-DROP TABLE IF EXISTS public.plan_items CASCADE;
-DROP TABLE IF EXISTS public.plans CASCADE;
-DROP TABLE IF EXISTS public.tax_rates CASCADE;
-DROP TABLE IF EXISTS public.product_variants CASCADE;
-DROP TABLE IF EXISTS public.products CASCADE;
-DROP TABLE IF EXISTS public.customers CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
-
--- Drop previous functions and triggers if any
-DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
-DROP FUNCTION IF EXISTS public.handle_payment_applied() CASCADE;
-DROP FUNCTION IF EXISTS public.handle_invoice_discount_applied() CASCADE;
-DROP FUNCTION IF EXISTS public.get_user_role() CASCADE;
-DROP FUNCTION IF EXISTS public.is_admin_or_staff() CASCADE;
-DROP FUNCTION IF EXISTS public.get_customer_id() CASCADE;
+-- 0. SCHEMA INITIALIZATION (Safe, non-destructive baseline)
+-- Note: Destructive DROP TABLE CASCADE statements have been removed to protect live data.
+-- To apply safe incremental migrations, refer to supabase/migrations/README.md
 
 -- Enable UUID extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -316,21 +292,23 @@ CREATE TABLE public.payments (
 -- 11. DATABASE FUNCTIONS & AUTOMATION TRIGGERS
 -- ============================================================
 
--- Function 1: Auto-create Profile and link Customer on User Registration
+-- Function 1: Auto-create Profile and link Customer on User Registration (Secured)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_assigned_role TEXT := 'customer';
 BEGIN
-  -- Insert user profile
+  -- Strict security: Public registrations are forced to 'customer'.
+  -- Administrative roles can only be granted by pre-existing admins.
   INSERT INTO public.profiles (id, full_name, email, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data ->> 'full_name', ''),
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data ->> 'role', 'customer')
+    v_assigned_role
   )
   ON CONFLICT (id) DO UPDATE
   SET full_name = EXCLUDED.full_name,
-      role = EXCLUDED.role,
       updated_at = NOW();
 
   -- If customer registered with matching email, link their portal auth account
@@ -357,28 +335,80 @@ SELECT
 FROM auth.users
 ON CONFLICT (id) DO NOTHING;
 
--- Function 2: Auto-update Invoice amount_paid and status when a payment is recorded
-CREATE OR REPLACE FUNCTION public.handle_payment_applied()
-RETURNS TRIGGER AS $$
+-- Function 2: Atomic Recalculation of Invoice Balance & Status
+CREATE OR REPLACE FUNCTION public.recalculate_invoice_balance(p_invoice_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  v_total_paid NUMERIC(12,2);
+  v_invoice_total NUMERIC(12,2);
+  v_current_status TEXT;
+  v_new_status TEXT;
 BEGIN
-  IF NEW.invoice_id IS NOT NULL THEN
-    UPDATE public.invoices
-    SET amount_paid = amount_paid + NEW.amount,
-        status = CASE 
-          WHEN (amount_paid + NEW.amount) >= total_amount THEN 'paid'
-          ELSE status
-        END,
-        updated_at = NOW()
-    WHERE id = NEW.invoice_id;
+  IF p_invoice_id IS NULL THEN
+    RETURN;
   END IF;
 
-  RETURN NEW;
+  -- 1. Lock invoice row to prevent concurrent race conditions
+  SELECT total_amount, status INTO v_invoice_total, v_current_status
+  FROM public.invoices
+  WHERE id = p_invoice_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  -- 2. Aggregate only successfully completed payments ('paid' or 'confirmed')
+  SELECT COALESCE(SUM(amount), 0.00) INTO v_total_paid
+  FROM public.payments
+  WHERE invoice_id = p_invoice_id
+    AND status IN ('paid', 'confirmed');
+
+  -- 3. Determine correct invoice status
+  IF v_total_paid >= v_invoice_total AND v_invoice_total > 0 THEN
+    v_new_status := 'paid';
+  ELSIF v_total_paid > 0 THEN
+    v_new_status := 'confirmed';
+  ELSE
+    IF v_current_status = 'paid' THEN
+      v_new_status := 'confirmed';
+    ELSE
+      v_new_status := v_current_status;
+    END IF;
+  END IF;
+
+  -- 4. Apply reconciled values atomically
+  UPDATE public.invoices
+  SET amount_paid = v_total_paid,
+      status = v_new_status,
+      updated_at = NOW()
+  WHERE id = p_invoice_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER on_payment_created
-  AFTER INSERT ON public.payments
-  FOR EACH ROW EXECUTE FUNCTION public.handle_payment_applied();
+CREATE OR REPLACE FUNCTION public.handle_payment_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    PERFORM public.recalculate_invoice_balance(NEW.invoice_id);
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.invoice_id IS NOT NULL AND OLD.invoice_id IS DISTINCT FROM NEW.invoice_id THEN
+      PERFORM public.recalculate_invoice_balance(OLD.invoice_id);
+    END IF;
+    PERFORM public.recalculate_invoice_balance(NEW.invoice_id);
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    PERFORM public.recalculate_invoice_balance(OLD.invoice_id);
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_payment_change
+  AFTER INSERT OR UPDATE OR DELETE ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.handle_payment_change();
 
 -- Function 3: Auto-increment Discount usage_count when applied to an invoice
 CREATE OR REPLACE FUNCTION public.handle_invoice_discount_applied()
@@ -423,6 +453,11 @@ DECLARE
   v_invoices JSONB := '[]'::JSONB;
   v_invoice_summary JSONB;
 BEGIN
+  -- 1. Authorization Guard: Only Admin or Staff accounts can run recurring generation
+  IF NOT public.is_admin_or_staff() THEN
+    RAISE EXCEPTION 'Unauthorized: Only administrator and staff accounts can invoke recurring invoice generation.';
+  END IF;
+
   -- Iterate over all active subscriptions due on or before p_as_of_date
   FOR v_sub IN
     SELECT 
@@ -447,6 +482,7 @@ BEGIN
       AND (s.end_date IS NULL OR s.end_date >= s.next_billing_date)
       AND (p_subscription_id IS NULL OR s.id = p_subscription_id)
     ORDER BY s.next_billing_date ASC
+    FOR UPDATE OF s
   LOOP
     -- 1. Determine billing period
     v_period_start := v_sub.next_billing_date;
@@ -719,7 +755,12 @@ CREATE POLICY "Public profiles are readable by authenticated users"
   ON public.profiles FOR SELECT TO authenticated USING (TRUE);
 
 CREATE POLICY "Users can update their own profile"
-  ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
+  ON public.profiles FOR UPDATE TO authenticated
+  USING (id = auth.uid())
+  WITH CHECK (
+    id = auth.uid() AND
+    role = (SELECT role FROM public.profiles WHERE id = auth.uid())
+  );
 
 CREATE POLICY "Admins can manage all profiles"
   ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');

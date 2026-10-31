@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AdminLayout, CustomerLayout } from '../components/layouts/AppShell'
 import AuthGuard from '../components/layouts/AuthGuard'
 import ModulePage, { routeMeta } from '../pages/ModulePage'
+import CustomerDetailsPage from '../pages/CustomerDetailsPage'
 import { DashboardPage, CustomersPage } from '../pages/ReferencePages'
 import SubscriptionsPage from '../features/subscriptions/pages/SubscriptionsPage'
 import SubscriptionDetailsPage from '../features/subscriptions/pages/SubscriptionDetailsPage'
@@ -10,14 +11,14 @@ import InvoiceDetailsPage from '../features/billing/pages/InvoiceDetailsPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from '../pages/AuthPages'
 import PaymentsPage from '../pages/PaymentsPage'
 import DiscountsPage from '../pages/DiscountsPage'
-import { PortalDashboardPage, PortalSubscriptionsPage, PortalInvoicesPage, PortalPaymentsPage } from '../pages/PortalPages'
+import { PortalDashboardPage, PortalSubscriptionsPage, PortalInvoicesPage, PortalPaymentsPage, PortalSettingsPage } from '../pages/PortalPages'
 import { useAuth } from '../context/AuthContext'
 
 const adminPlaceholderRoutes = Object.entries(routeMeta).filter(
   ([path]) => path.startsWith('/admin/') && !['/admin/customers/:id', '/admin/products/:id', '/admin/subscriptions', '/admin/subscriptions/:id', '/admin/invoices', '/admin/invoices/:id', '/admin/payments', '/admin/discounts'].includes(path)
 )
 const portalPlaceholderRoutes = Object.entries(routeMeta).filter(
-  ([path]) => path.startsWith('/portal/') && !['/portal/dashboard', '/portal/subscriptions', '/portal/invoices', '/portal/payments'].includes(path)
+  ([path]) => path.startsWith('/portal/') && !['/portal/dashboard', '/portal/subscriptions', '/portal/invoices', '/portal/payments', '/portal/settings'].includes(path)
 )
 
 function SmartRedirect({ adminTo, portalTo }) {
@@ -60,7 +61,7 @@ export default function AppRoutes() {
         {adminPlaceholderRoutes.map(([path, meta]) => (
           <Route key={path} path={path.slice('/admin/'.length)} element={<ModulePage meta={meta} />} />
         ))}
-        <Route path="customers/:id" element={<ModulePage meta={routeMeta['/admin/customers/:id']} />} />
+        <Route path="customers/:id" element={<CustomerDetailsPage />} />
         <Route path="products/:id" element={<ModulePage meta={routeMeta['/admin/products/:id']} />} />
       </Route>
 
@@ -71,6 +72,7 @@ export default function AppRoutes() {
         <Route path="subscriptions" element={<PortalSubscriptionsPage />} />
         <Route path="invoices" element={<PortalInvoicesPage />} />
         <Route path="payments" element={<PortalPaymentsPage />} />
+        <Route path="settings" element={<PortalSettingsPage />} />
         {portalPlaceholderRoutes.map(([path, meta]) => (
           <Route key={path} path={path.slice('/portal/'.length)} element={<ModulePage meta={meta} />} />
         ))}
