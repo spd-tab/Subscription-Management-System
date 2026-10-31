@@ -68,8 +68,53 @@ function PageHeading({ title, description, children }) {
 // DASHBOARD PAGE - SUPABASE CONNECTED
 // ==========================================
 
+function getPeriodDates(period) {
+  const today = new Date()
+  let startDate = null
+  let endDate = null
+  const toDateOnly = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate()
+    ).padStart(2, '0')}`
+
+  switch (period) {
+    case 'current_month':
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      break
+    case 'previous_month':
+      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      endDate = new Date(today.getFullYear(), today.getMonth(), 0)
+      break
+    case 'last_30_days':
+      startDate = new Date()
+      startDate.setDate(today.getDate() - 30)
+      endDate = today
+      break
+    case 'last_90_days':
+      startDate = new Date()
+      startDate.setDate(today.getDate() - 90)
+      endDate = today
+      break
+    case 'current_year':
+      startDate = new Date(today.getFullYear(), 0, 1)
+      endDate = new Date(today.getFullYear(), 11, 31)
+      break
+    case 'all_time':
+    default:
+      break
+  }
+
+  return {
+    startDate: startDate ? toDateOnly(startDate) : null,
+    endDate: endDate ? toDateOnly(endDate) : null,
+  }
+}
+
 export function DashboardPage() {
-  const [period, setPeriod] = useState('May 2025')
+  const [periodFilter, setPeriodFilter] = useState('current_month')
+  const { startDate, endDate } = getPeriodDates(periodFilter)
+  const periodLabel = periodFilter.split('_').join(' ')
 
   const {
     customers: liveCustomers,
@@ -79,7 +124,7 @@ export function DashboardPage() {
     loading,
     error,
     stats,
-  } = useDashboardData()
+  } = useDashboardData(startDate, endDate)
 
   const quick = [
     ['New Sub', '/admin/subscriptions', <Zap size={19} />],
@@ -88,54 +133,54 @@ export function DashboardPage() {
     ['Payment', '/admin/payments', <span className="quick-receipt">▣</span>],
   ]
 
-  const activeCount = liveSubscriptions.filter(
-    (sub) => sub.status?.toLowerCase() === 'active'
-  ).length
-
-  const pausedCount = liveSubscriptions.filter(
-    (sub) => sub.status?.toLowerCase() === 'paused'
-  ).length
-
-  const quotationCount = liveSubscriptions.filter(
-    (sub) => sub.status?.toLowerCase() === 'quotation'
-  ).length
-
   const liveStats = [
     {
-      label: 'Total Customers',
-      value: stats.totalCustomers.toLocaleString('en-IN'),
-      delta: 'Registered customers',
+      label: 'New Customers',
+      value: stats.newCustomers.toLocaleString('en-IN'),
+      delta: `Past ${periodLabel}`,
       icon: 'users',
     },
     {
-      label: 'MRR run-rate',
-      value: 'Not available',
-      delta: 'Plan pricing not connected yet',
+      label: 'Active Subs',
+      value: stats.activeSubscriptions.toLocaleString('en-IN'),
+      delta: 'Currently active',
+      icon: 'users',
+    },
+    {
+      label: 'MRR',
+      value: formatINR(stats.monthlyRecurringRevenue),
+      delta: 'Current run-rate across active subscriptions',
       icon: 'trend',
     },
     {
-      label: 'Active subs',
-      value: stats.activeSubscriptions.toLocaleString('en-IN'),
-      delta: 'Active subscriptions',
-      icon: 'users',
+      label: 'Total Invoices',
+      value: stats.totalInvoices.toLocaleString('en-IN'),
+      delta: `Issued in ${periodLabel}`,
+      icon: 'receipt',
+    },
+    {
+      label: 'Paid Invoices',
+      value: stats.paidInvoices.toLocaleString('en-IN'),
+      delta: `Currently paid; issued in ${periodLabel}`,
+      icon: 'filecheck',
     },
     {
       label: 'Outstanding',
       value: formatINR(stats.outstandingAmount),
-      delta: 'Unpaid invoice balance',
+      delta: 'Collectible balance',
       icon: 'clock',
     },
     {
       label: 'Overdue',
       value: formatINR(stats.overdueAmount),
-      delta: `${stats.overdueCount} overdue invoices`,
+      delta: `${stats.overdueCount} invoices overdue`,
       icon: 'alert',
       tone: 'danger',
     },
     {
-      label: 'Paid Revenue',
-      value: formatINR(stats.totalPaid),
-      delta: 'Successful payments',
+      label: 'Total Collected',
+      value: formatINR(stats.totalCollectedRevenue),
+      delta: `Payments in ${periodLabel}`,
       icon: 'trend',
     },
   ]
@@ -171,12 +216,15 @@ export function DashboardPage() {
 
         <select
           className="date-pill"
-          value={period}
-          onChange={(event) => setPeriod(event.target.value)}
+          value={periodFilter}
+          onChange={(event) => setPeriodFilter(event.target.value)}
         >
-          <option>May 2025</option>
-          <option>April 2025</option>
-          <option>March 2025</option>
+          <option value="current_month">Current Month</option>
+          <option value="previous_month">Previous Month</option>
+          <option value="last_30_days">Last 30 Days</option>
+          <option value="last_90_days">Last 90 Days</option>
+          <option value="current_year">Current Year</option>
+          <option value="all_time">All Time</option>
         </select>
       </div>
 
@@ -225,13 +273,11 @@ export function DashboardPage() {
           <section className="panel trend-panel">
             <div className="panel-heading">
               <div>
-                <h2>Monthly Recurring Revenue</h2>
-                <p>
-                  Sample trend only. Live revenue history is not connected yet.
-                </p>
+                <h2>Monthly Recurring Revenue Trend (Demo)</h2>
+                <p>Illustrative sample data; not connected to Supabase.</p>
               </div>
 
-              <span className="growth-tag">Demo Trend</span>
+              <span className="growth-tag">Demo Data</span>
             </div>
 
             <Suspense
@@ -257,15 +303,15 @@ export function DashboardPage() {
 
             <div className="cohort-legend">
               <span>
-                ● Active <b>{activeCount}</b>
+                ● Active <b>{stats.activeSubscriptions}</b>
               </span>
 
               <span>
-                ● Paused <b>{pausedCount}</b>
+                ● Paused <b>{stats.pausedSubscriptions}</b>
               </span>
 
               <span>
-                ● Quotation <b>{quotationCount}</b>
+                ● New <b>{stats.newSubscriptions}</b>
               </span>
             </div>
           </section>
@@ -351,7 +397,7 @@ export function DashboardPage() {
                 <p>Total successful payments from Supabase</p>
               </div>
 
-              <strong>{formatINR(stats.totalPaid)}</strong>
+              <strong>{formatINR(stats.totalCollectedRevenue)}</strong>
             </div>
           </section>
         </>

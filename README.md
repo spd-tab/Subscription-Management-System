@@ -35,7 +35,7 @@ On Windows, copy `.env.example` to `.env` manually or run `Copy-Item .env.exampl
 - Record details: `/admin/customers/:id`, `/admin/products/:id`, `/admin/subscriptions/:id`, `/admin/invoices/:id`
 - Customer portal: `/portal/dashboard`, `/portal/subscriptions`, `/portal/invoices`, `/portal/payments`
 
-Routes are development-friendly and the auth guard is currently a passthrough. Replace it with Supabase session and role checks when auth is implemented. Auth forms are UI-only until Supabase Auth is connected.
+Auth guards are in place, restricting access based on roles (admin, staff, customer) using Supabase authentication. Auth forms are integrated with Supabase Auth functions.
 
 ## Structure
 
@@ -76,4 +76,4 @@ See [TEAM_DEVELOPMENT.md](./TEAM_DEVELOPMENT.md) for the step-by-step Windows/Po
 
 ## Current backend state
 
-`src/services/supabase/client.js` creates a client only when both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are provided. No database schema or persistence is included. Pages use reusable local mock data so the UI can be demonstrated before backend setup.
+`src/services/supabase/client.js` creates a client only when both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are provided. The database schema is defined in `supabase_schema.sql`, and backend integration for various modules is in progress. Some pages may still use local mock data if Supabase is not fully configured or integrated.
